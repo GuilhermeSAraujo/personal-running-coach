@@ -24,6 +24,7 @@ export interface IActivity {
   elevationGainMeters: number;
   heartRate?: IHeartRate;
   cadence?: number;
+  sufferScore?: number;
   splits?: unknown[];
   training?: IActivityTraining;
   source: ActivitySource;
@@ -58,6 +59,7 @@ const ActivitySchema = new Schema<IActivity>(
     elevationGainMeters: { type: Number, required: true },
     heartRate: { type: heartRateSchema },
     cadence: { type: Number },
+    sufferScore: { type: Number },
     splits: { type: [Schema.Types.Mixed] },
     training: { type: activityTrainingSchema },
     source: {

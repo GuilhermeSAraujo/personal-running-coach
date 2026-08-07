@@ -48,6 +48,7 @@ export function mapSummaryToActivity(
     paceSecondsPerKm,
     elevationGainMeters: activity.total_elevation_gain ?? 0,
     ...(heartRate ? { heartRate } : {}),
+    ...(activity.suffer_score != null ? { sufferScore: activity.suffer_score } : {}),
     source: "strava",
     raw: activity,
   };

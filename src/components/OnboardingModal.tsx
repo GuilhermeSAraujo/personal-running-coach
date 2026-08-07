@@ -18,6 +18,10 @@ import {
   DEFAULT_TARGET_TIME_SECONDS,
   formatDurationLabel,
 } from "@/lib/onboardingDefaults"
+import {
+  maskDurationRightAligned,
+  maskMmSs,
+} from "@/lib/timeInputMask"
 
 const GOAL_LABELS: Record<GoalType, string> = {
   "5k": "5K",
@@ -217,7 +221,9 @@ export function OnboardingModal({ open }: { open: boolean }) {
                     <Input
                       placeholder="e.g. 30:00 or 2:15:00"
                       value={targetTime}
-                      onChange={(e) => setTargetTime(e.target.value)}
+                      onChange={(e) =>
+                        setTargetTime(maskDurationRightAligned(e.target.value))
+                      }
                       inputMode="numeric"
                       autoComplete="off"
                     />
@@ -296,7 +302,9 @@ export function OnboardingModal({ open }: { open: boolean }) {
                     <Input
                       placeholder="e.g. 28:00"
                       value={current5kTime}
-                      onChange={(e) => setCurrent5kTime(e.target.value)}
+                      onChange={(e) =>
+                        setCurrent5kTime(maskMmSs(e.target.value))
+                      }
                       inputMode="numeric"
                       autoComplete="off"
                     />

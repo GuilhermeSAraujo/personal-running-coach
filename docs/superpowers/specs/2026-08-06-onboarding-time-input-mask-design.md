@@ -19,14 +19,15 @@ Small pure mask helpers (no new dependencies). Strip non-digits on change, forma
 ### Current 5K time (step 2)
 
 - Cap: 4 digits (always under 1 hour).
-- Format: fixed `mm:ss`. Left-pad digit string to 4 with `0`, then split `mm` / `ss`.
+- Format: progressive right-aligned `mm:ss` (same rules as target time, no hours). Do **not** left-pad with zeros — that rewrites `2` → `00:02` and jumps the caret on controlled inputs.
 - Examples:
-  - `2` → `00:02`
-  - `28` → `00:28`
-  - `280` → `02:80` (mid-type; submit still rejects invalid seconds via `parseDurationToSeconds`)
+  - `2` → `2`
+  - `28` → `28`
+  - `280` → `2:80` (mid-type; submit still rejects invalid seconds via `parseDurationToSeconds`)
+  - `930` → `9:30`
   - `2800` → `28:00`
   - `28001` → `28:00` (extra digits dropped)
-- Empty input stays empty (do not force `00:00` when blank).
+- Empty input stays empty.
 
 ### Target time (step 1)
 

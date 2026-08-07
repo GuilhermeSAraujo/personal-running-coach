@@ -8,6 +8,7 @@ export interface StravaSummaryActivity {
   total_elevation_gain?: number;
   average_heartrate?: number;
   max_heartrate?: number;
+  suffer_score?: number | null;
 }
 
 export interface StravaTokenResponse {

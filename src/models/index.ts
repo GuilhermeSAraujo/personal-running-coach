@@ -38,6 +38,21 @@ export {
 } from "./Activity";
 
 export {
+  ATHLETE_SNAPSHOT_SCHEMA_VERSION,
+  AthleteSnapshot,
+  type AthleteSnapshotDocument,
+  type IAthleteSnapshot,
+  type IAthleteSnapshotGoal,
+  type IAthleteSnapshotProfile,
+  type ICurrentState,
+  type IEstimatedEffort,
+  type IEstimatedEffortSet,
+  type IPersonalBestSet,
+  type ISnapshotActivity,
+  type IWeeklyTraining,
+} from "./AthleteSnapshot";
+
+export {
   Evaluation,
   type EvaluationDocument,
   type IEvaluation,

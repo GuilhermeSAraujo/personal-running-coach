@@ -1,5 +1,7 @@
 import { dbConnect } from "@/lib/db";
-import { Activity, User } from "@/models";
+import { Activity, AthleteSnapshot, User } from "@/models";
+import { generateAthleteSnapshot } from "@/services/snapshot/generateAthleteSnapshot";
+import { backfillSufferScoreFromRaw } from "./backfillSufferScore";
 import { ensureUserAccessToken, listAthleteActivities } from "./client";
 import { isRunOrWalk, mapSummaryToActivity } from "./mapActivity";
 
@@ -22,6 +24,10 @@ export async function syncActivitiesForAthlete(
   athleteId: number,
 ): Promise<SyncActivitiesResult> {
   await dbConnect();
+
+  console.log("Backfilling suffer score from raw...");
+  const backfilled = await backfillSufferScoreFromRaw();
+  console.log(`Backfilled ${backfilled} activities`);
 
   const user = await User.findOne({ "strava.athleteId": athleteId });
   if (!user) {
@@ -85,6 +91,18 @@ export async function syncActivitiesForAthlete(
     }
 
     page += 1;
+  }
+
+  const needsSnapshot =
+    upserted > 0 ||
+    !(await AthleteSnapshot.exists({ userId: user._id }));
+
+  if (needsSnapshot) {
+    try {
+      await generateAthleteSnapshot(user._id);
+    } catch (error) {
+      console.error("Failed to generate athlete snapshot:", error);
+    }
   }
 
   return { fetched, upserted, skipped };
