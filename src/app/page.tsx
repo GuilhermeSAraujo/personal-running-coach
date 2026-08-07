@@ -1,5 +1,6 @@
 import { auth, signIn, signOut } from "@/auth"
 import { ActivityHighlights } from "@/components/ActivityHighlights"
+import { NextSessionsPlan } from "@/components/NextSessionsPlan"
 import { OnboardingModal } from "@/components/OnboardingModal"
 import { SyncActivitiesButton } from "@/components/SyncActivitiesButton"
 import { dbConnect } from "@/lib/db"
@@ -8,6 +9,10 @@ import {
   getActivityHighlights,
   type ActivityHighlights as ActivityHighlightsData,
 } from "@/services/activities/highlights"
+import {
+  getLatestSessionPlan,
+  type SessionPlanSummary,
+} from "@/services/sessionPlans/getLatestSessionPlan"
 import { Button, Container, Heading, Text, VStack } from "@chakra-ui/react"
 
 export default async function HomePage() {
@@ -15,6 +20,7 @@ export default async function HomePage() {
 
   let needsOnboarding = false
   let highlights: ActivityHighlightsData | null = null
+  let sessionPlan: SessionPlanSummary | null = null
 
   if (session?.stravaAthleteId) {
     await dbConnect()
@@ -25,7 +31,10 @@ export default async function HomePage() {
       .lean()
     needsOnboarding = !user?.goal?.type
     if (user) {
-      highlights = await getActivityHighlights(user._id)
+      ;[highlights, sessionPlan] = await Promise.all([
+        getActivityHighlights(user._id),
+        getLatestSessionPlan(user._id),
+      ])
     }
   }
 
@@ -52,22 +61,25 @@ export default async function HomePage() {
             </form>
           </>
         ) : (
-          <VStack gap={4}>
+          <VStack gap={6} align="stretch">
             <Heading size="md" textAlign="center">
               Logged in as {session.user?.name}
             </Heading>
+            <NextSessionsPlan plan={sessionPlan} />
+            <VStack gap={3} align="stretch">
+              <SyncActivitiesButton />
+              <form
+                action={async () => {
+                  "use server"
+                  await signOut()
+                }}
+              >
+                <Button type="submit" variant="outline" colorPalette="red" width="full">
+                  Sign Out
+                </Button>
+              </form>
+            </VStack>
             {highlights ? <ActivityHighlights highlights={highlights} /> : null}
-            <SyncActivitiesButton />
-            <form
-              action={async () => {
-                "use server"
-                await signOut()
-              }}
-            >
-              <Button type="submit" variant="outline" colorPalette="red" width="full">
-                Sign Out
-              </Button>
-            </form>
             <OnboardingModal open={needsOnboarding} />
           </VStack>
         )}

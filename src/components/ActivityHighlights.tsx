@@ -6,7 +6,7 @@ import {
   formatPace,
 } from "@/lib/activityFormat";
 import type { ActivityHighlights, ActivitySummary } from "@/services/activities/highlights";
-import { Text, VStack } from "@chakra-ui/react";
+import { Heading, Text, VStack } from "@chakra-ui/react";
 
 type Props = {
   highlights: ActivityHighlights;
@@ -36,21 +36,23 @@ function HighlightRow({
   secondary: (a: ActivitySummary) => string;
 }) {
   return (
-    <VStack gap={0.5} align="stretch">
-      <Text fontSize="sm" color="fg.muted" fontWeight="medium">
+    <VStack gap={0} align="stretch">
+      <Text fontSize="xs" color="fg.muted" fontWeight="medium">
         {label}
       </Text>
       {activity ? (
         <>
-          <Text fontWeight="semibold">
+          <Text fontSize="sm" fontWeight="semibold">
             {primary(activity)}
           </Text>
-          <Text fontSize="sm" color="fg.muted">
+          <Text fontSize="xs" color="fg.muted">
             {secondary(activity)}
           </Text>
         </>
       ) : (
-        <Text color="fg.muted">—</Text>
+        <Text fontSize="sm" color="fg.muted">
+          —
+        </Text>
       )}
     </VStack>
   );
@@ -62,14 +64,22 @@ export function ActivityHighlights({ highlights }: Props) {
 
   if (empty) {
     return (
-      <Text textAlign="center" color="fg.muted" fontSize="sm">
-        No activities yet. Sync from Strava to get started.
-      </Text>
+      <VStack gap={1} align="stretch" width="full">
+        <Heading size="xs" color="fg.muted">
+          Recent activity
+        </Heading>
+        <Text color="fg.muted" fontSize="sm">
+          No activities yet. Sync from Strava to get started.
+        </Text>
+      </VStack>
     );
   }
 
   return (
-    <VStack gap={4} align="stretch" width="full">
+    <VStack gap={2} align="stretch" width="full">
+      <Heading size="xs" color="fg.muted">
+        Recent activity
+      </Heading>
       <HighlightRow
         label="Last activity"
         activity={last}
