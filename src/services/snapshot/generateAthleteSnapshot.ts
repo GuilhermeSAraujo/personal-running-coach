@@ -1,6 +1,7 @@
 import type { Types } from "mongoose";
 import { dbConnect } from "@/lib/db";
 import { Activity, AthleteSnapshot, User } from "@/models";
+import { generateNextSessions } from "@/services/ai/generateNextSessions";
 import { buildAthleteSnapshot } from "./buildAthleteSnapshot";
 import type { SnapshotActivityInput } from "./types";
 
@@ -35,8 +36,18 @@ export async function generateAthleteSnapshot(
     now: new Date(),
   });
 
-  await AthleteSnapshot.create({
+  const created = await AthleteSnapshot.create({
     userId,
     ...snapshot,
   });
+
+  try {
+    await generateNextSessions({
+      userId,
+      athleteSnapshotId: created._id,
+      snapshot,
+    });
+  } catch (error) {
+    console.error("Failed to generate next sessions:", error);
+  }
 }

@@ -3,6 +3,8 @@ export {
   ACTIVITY_TYPES,
   GOAL_DISTANCE_KM,
   GOAL_TYPES,
+  SEGMENT_KINDS,
+  SESSION_TYPES,
   TRAINING_PLAN_STATUSES,
   WORKOUT_STATUSES,
   WORKOUT_TYPES,
@@ -15,6 +17,8 @@ export {
   type IAthleteMetrics,
   type IEstimatedRaceTimes,
   type IHeartRate,
+  type SegmentKind,
+  type SessionType,
   type TrainingPlanStatus,
   type WorkoutStatus,
   type WorkoutType,
@@ -73,3 +77,12 @@ export {
   type IWorkoutTarget,
   type WorkoutDocument,
 } from "./Workout";
+
+export {
+  SESSION_PLAN_SCHEMA_VERSION,
+  SessionPlan,
+  type IPlannedSession,
+  type ISessionPlan,
+  type ISessionSegment,
+  type SessionPlanDocument,
+} from "./SessionPlan";

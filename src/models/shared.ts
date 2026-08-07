@@ -42,6 +42,24 @@ export const TRAINING_PLAN_STATUSES = [
 ] as const;
 export type TrainingPlanStatus = (typeof TRAINING_PLAN_STATUSES)[number];
 
+export const SESSION_TYPES = [
+  "easy",
+  "tempo",
+  "long_run",
+  "interval",
+  "recovery",
+] as const;
+export type SessionType = (typeof SESSION_TYPES)[number];
+
+export const SEGMENT_KINDS = [
+  "warmup",
+  "work",
+  "rest",
+  "cooldown",
+  "steady",
+] as const;
+export type SegmentKind = (typeof SEGMENT_KINDS)[number];
+
 export interface IEstimatedRaceTimes {
   "5k"?: number;
   "10k"?: number;
