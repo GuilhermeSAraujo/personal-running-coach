@@ -16,6 +16,7 @@ export type SessionSegmentSummary = {
 
 export type PlannedSessionSummary = {
   order: number;
+  scheduledDate: string;
   title: string;
   type: SessionType;
   purpose: string;

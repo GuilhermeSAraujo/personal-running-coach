@@ -103,6 +103,8 @@ function intensityScore(
   paceSecondsPerKm: number,
   heartRateAvg?: number,
 ): { score: number; reason?: string } {
+  if (type === "rest") return { score: 0 };
+
   const paceMin = paceSecondsPerKm / 60;
 
   let expected: "easy" | "moderate" | "hard";
@@ -138,11 +140,12 @@ function intensityScore(
 
 function orderScore(
   activityRank: number,
-  sessionOrder: number,
+  expectedOrderRank: number,
 ): { score: number; reason?: string } {
-  // session.order is 1-based; activityRank is 0-based by startedAt ascending
-  const expectedRank = sessionOrder - 1;
-  const delta = Math.abs(activityRank - expectedRank);
+  // Both are 0-based dense ranks: activityRank by startedAt ascending,
+  // expectedOrderRank by position among non-rest candidate sessions (not
+  // the raw session.order, which can have gaps from rest days).
+  const delta = Math.abs(activityRank - expectedOrderRank);
   if (delta === 0) {
     return { score: 1, reason: "fits session order" };
   }
@@ -154,9 +157,10 @@ export function scoreActivityToSession(
   activity: ActivityForMatch,
   session: SessionForMatch,
   activityRank: number,
+  expectedOrderRank: number,
 ): ScoreResult {
   const reasons: string[] = [];
-  const order = orderScore(activityRank, session.order);
+  const order = orderScore(activityRank, expectedOrderRank);
   if (order.reason) reasons.push(order.reason);
 
   const range = plannedDistanceRange(session);

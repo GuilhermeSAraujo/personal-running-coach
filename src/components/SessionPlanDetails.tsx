@@ -34,7 +34,7 @@ export function SessionPlanDetails({ plan }: Props) {
           <VStack key={session.order} gap={2} align="stretch">
             <VStack gap={0.5} align="stretch">
               <Heading size="sm">
-                {session.order}. {session.title}
+                {session.scheduledDate} · {session.order}. {session.title}
               </Heading>
               <Text fontSize="sm" color="fg.muted">
                 {[formatSessionType(session.type), distance]

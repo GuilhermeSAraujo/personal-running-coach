@@ -8,6 +8,7 @@ const SESSION_TYPE_LABELS: Record<SessionType, string> = {
   long_run: "Long run",
   interval: "Interval",
   recovery: "Recovery",
+  rest: "Rest",
 };
 
 const SEGMENT_KIND_LABELS: Record<SegmentKind, string> = {

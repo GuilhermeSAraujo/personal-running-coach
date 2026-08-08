@@ -5,22 +5,29 @@ import {
   type IAthleteSnapshot,
 } from "@/models";
 import { getJsonModel } from "./ai-client";
+import { buildContinuityContext, type ContinuityPlanSession } from "./buildContinuityContext";
+import { rollingWeekWindow } from "./planWindow";
 import { nextSessionsResponseSchema } from "./sessionPlanSchema";
 import { validateSessionPlanResponse } from "./validateSessionPlan";
 
 const SYSTEM_INSTRUCTION = `Você é um treinador de corrida pessoal.
 
-Gere exatamente as próximas 3 sessões de corrida para o atleta com base no snapshot JSON fornecido.
+Gere o plano para os próximos 7 dias (janela rolante a partir de hoje, datas UTC), com exatamente 1 sessão por dia.
 
 Regras:
 - Responda apenas com JSON no schema solicitado.
-- Todos os textos em linguagem natural (title, purpose, coachingNotes, notes, rationale) devem estar em português do Brasil (pt-BR).
-- Campos enum (type, kind) e números permanecem no formato da máquina (inglês / decimal).
+- Exatamente 7 sessões; scheduledDate = cada dia de startDate até endDate (inclusive).
+- order 1..7 em ordem cronológica de scheduledDate.
+- Inclua dias type "rest" explicitamente (segments deve ser []).
+- Em rationale, diga quantos treinos (dias não-rest) há na semana e por quê.
+- Todos os textos em linguagem natural (title, purpose, coachingNotes, notes, rationale) em pt-BR.
+- Campos enum (type, kind) e números no formato da máquina.
 - Pace em minutos por km decimais (ex.: 6.5 = 6:30/km).
-- Adapte volume, longão e intensidade ao estado atual, metas e histórico do snapshot.
+- Adapte volume, longão e intensidade ao snapshot.
 - Se heartRateCoverage for baixo/incompleto, priorize percepção de esforço sobre zonas de FC.
-- Seja progressivo e seguro; não simule prova sem necessidade.
-- Use segments (warmup/work/rest/cooldown/steady) para descrever a estrutura, inclusive intervalos com repeat.`;
+- Seja progressivo e seguro.
+- Use segments (warmup/work/rest/cooldown/steady) para treinos; rest days usam segments [].
+- Se houver um bloco de continuidade JSON: preserve em linhas gerais as remainingSessions (objetivo, tipo, estrutura, datas quando ainda caírem na janela); permita ajustes leves; use completedSessions só como contexto do que já foi feito; não reemitir treinos já completed como sessões do novo plano.`;
 
 export type SnapshotForAi = Omit<IAthleteSnapshot, "userId" | "createdAt">;
 
@@ -28,7 +35,25 @@ export async function generateNextSessions(input: {
   userId: Types.ObjectId;
   athleteSnapshotId: Types.ObjectId;
   snapshot: SnapshotForAi;
+  priorPlan?: { sessions: ContinuityPlanSession[] } | null;
+  now?: Date;
 }): Promise<void> {
+  const now = input.now ?? new Date();
+  const window = rollingWeekWindow(now);
+
+  const continuity =
+    input.priorPlan != null ? buildContinuityContext(input.priorPlan, now) : null;
+
+  const userText = [
+    `Janela do plano (UTC): ${window.startDate} … ${window.endDate}`,
+    `Snapshot do atleta (JSON):\n${JSON.stringify(input.snapshot)}`,
+    continuity
+      ? `Continuidade do plano anterior (JSON):\n${JSON.stringify(continuity)}`
+      : null,
+  ]
+    .filter((part): part is string => part != null)
+    .join("\n\n");
+
   const model = getJsonModel({
     responseSchema: nextSessionsResponseSchema,
     systemInstruction: SYSTEM_INSTRUCTION,
@@ -38,11 +63,7 @@ export async function generateNextSessions(input: {
     contents: [
       {
         role: "user",
-        parts: [
-          {
-            text: `Snapshot do atleta (JSON):\n${JSON.stringify(input.snapshot)}`,
-          },
-        ],
+        parts: [{ text: userText }],
       },
     ],
   });
@@ -59,7 +80,7 @@ export async function generateNextSessions(input: {
     throw new Error("Gemini returned invalid JSON");
   }
 
-  const validated = validateSessionPlanResponse(parsed);
+  const validated = validateSessionPlanResponse(parsed, { now });
   const generatedAt = new Date();
 
   await SessionPlan.create({

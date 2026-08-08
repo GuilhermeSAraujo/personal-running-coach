@@ -30,6 +30,7 @@ export interface ISessionSegment {
 
 export interface IPlannedSession {
   order: number;
+  scheduledDate: string;
   title: string;
   type: SessionType;
   purpose: string;
@@ -75,6 +76,7 @@ const sessionSegmentSchema = new Schema<ISessionSegment>(
 const plannedSessionSchema = new Schema<IPlannedSession>(
   {
     order: { type: Number, required: true },
+    scheduledDate: { type: String, required: true },
     title: { type: String, required: true },
     type: { type: String, enum: SESSION_TYPES, required: true },
     purpose: { type: String, required: true },
@@ -131,9 +133,9 @@ const SessionPlanSchema = new Schema<ISessionPlan>(
       required: true,
       validate: {
         validator(value: IPlannedSession[]) {
-          return Array.isArray(value) && value.length === 3;
+          return Array.isArray(value) && value.length === 7;
         },
-        message: "sessions must contain exactly 3 items",
+        message: "sessions must contain exactly 7 items",
       },
     },
   },

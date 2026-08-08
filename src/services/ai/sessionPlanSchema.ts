@@ -37,6 +37,10 @@ const plannedSessionSchema: ResponseSchema = {
   type: SchemaType.OBJECT,
   properties: {
     order: numberSchema,
+    scheduledDate: {
+      type: SchemaType.STRING,
+      description: "YYYY-MM-DD (UTC)",
+    },
     title: {
       type: SchemaType.STRING,
       description: "Título curto em português do Brasil",
@@ -59,13 +63,21 @@ const plannedSessionSchema: ResponseSchema = {
     segments: {
       type: SchemaType.ARRAY,
       items: segmentSchema,
-      minItems: 1,
+      minItems: 0,
     },
   },
-  required: ["order", "title", "type", "purpose", "coachingNotes", "segments"],
+  required: [
+    "order",
+    "scheduledDate",
+    "title",
+    "type",
+    "purpose",
+    "coachingNotes",
+    "segments",
+  ],
 };
 
-/** Gemini structured-output schema for exactly 3 planned sessions. */
+/** Gemini structured-output schema for exactly 7 dated planned sessions (one rolling week). */
 export const nextSessionsResponseSchema: ResponseSchema = {
   type: SchemaType.OBJECT,
   properties: {
@@ -73,13 +85,13 @@ export const nextSessionsResponseSchema: ResponseSchema = {
       type: SchemaType.STRING,
       nullable: true,
       description:
-        "Breve justificativa do bloco de 3 sessões em português do Brasil",
+        "Breve justificativa do plano semanal (contagem e distribuição dos treinos) em português do Brasil",
     },
     sessions: {
       type: SchemaType.ARRAY,
       items: plannedSessionSchema,
-      minItems: 3,
-      maxItems: 3,
+      minItems: 7,
+      maxItems: 7,
     },
   },
   required: ["sessions"],

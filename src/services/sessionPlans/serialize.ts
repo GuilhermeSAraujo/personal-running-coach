@@ -45,6 +45,7 @@ function toSegment(segment: ISessionSegment): SessionSegmentSummary {
 function toSession(session: IPlannedSession): PlannedSessionSummary {
   return {
     order: session.order,
+    scheduledDate: session.scheduledDate,
     title: session.title,
     type: session.type,
     purpose: session.purpose,

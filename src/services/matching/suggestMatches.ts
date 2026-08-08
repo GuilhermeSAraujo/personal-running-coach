@@ -20,20 +20,21 @@ export function suggestMatches(
   const pairs: Pair[] = [];
 
   sortedActivities.forEach((activity, rank) => {
-    for (const session of openSessions) {
+    openSessions.forEach((session, sessionIndex) => {
       const { score, reasons } = scoreActivityToSession(
         activity,
         session,
         rank,
+        sessionIndex,
       );
-      if (score < threshold) continue;
+      if (score < threshold) return;
       pairs.push({
         activityId: activity.id,
         sessionOrder: session.order,
         score,
         reasons,
       });
-    }
+    });
   });
 
   pairs.sort((a, b) => b.score - a.score);

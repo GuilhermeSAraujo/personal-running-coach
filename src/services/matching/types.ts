@@ -44,6 +44,7 @@ export type SyncOpenSessionSummary = {
   order: number;
   title: string;
   type: string;
+  scheduledDate: string;
 };
 
 /** Minimum combined score to emit a suggestion. */

@@ -1,6 +1,6 @@
 import type { SegmentKind, SessionType } from "@/models";
 
-/** AI JSON response for the next 3 sessions (natural-language fields in pt-BR). */
+/** AI JSON response for the next 7 dated sessions (natural-language fields in pt-BR). */
 export interface AiSessionSegment {
   kind: SegmentKind;
   repeat?: number;
@@ -17,6 +17,7 @@ export interface AiSessionSegment {
 
 export interface AiPlannedSession {
   order: number;
+  scheduledDate: string;
   title: string;
   type: SessionType;
   purpose: string;

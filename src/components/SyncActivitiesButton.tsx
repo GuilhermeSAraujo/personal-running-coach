@@ -262,7 +262,8 @@ export function SyncActivitiesButton() {
                       usedSessionOrders.has(order) && selected !== order
                     return (
                       <option key={session.order} value={order} disabled={taken}>
-                        {session.order}. {session.title} ({session.type})
+                        {session.scheduledDate} · {session.order}. {session.title}{" "}
+                        ({session.type})
                       </option>
                     )
                   })}

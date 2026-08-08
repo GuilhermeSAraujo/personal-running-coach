@@ -1,6 +1,7 @@
 import mongoose, { type Types } from "mongoose";
 import { dbConnect } from "@/lib/db";
 import { Activity, SessionPlan } from "@/models";
+import { toPriorPlanSessions } from "@/services/ai/buildContinuityContext";
 import { generateAthleteSnapshot } from "@/services/snapshot/generateAthleteSnapshot";
 
 export type ConfirmMatchEntry = {
@@ -134,6 +135,12 @@ export async function confirmMatches(input: {
         409,
       );
     }
+    if (session.type === "rest") {
+      throw new ConfirmMatchesError(
+        "Cannot match an activity to a rest day",
+        400,
+      );
+    }
 
     session.status = "matched";
     session.activityId = new mongoose.Types.ObjectId(entry.activityId);
@@ -152,7 +159,9 @@ export async function confirmMatches(input: {
   }
 
   try {
-    await generateAthleteSnapshot(input.userId);
+    await generateAthleteSnapshot(input.userId, {
+      priorPlan: { sessions: toPriorPlanSessions(plan.sessions) },
+    });
   } catch (error) {
     console.error("Failed to regenerate plan after matches:", error);
     return {
@@ -187,5 +196,15 @@ export async function regenerateSessionPlanForUser(
   userId: Types.ObjectId,
 ): Promise<void> {
   await dbConnect();
-  await generateAthleteSnapshot(userId);
+
+  const prior = await SessionPlan.findOne({
+    userId,
+    status: "superseded",
+  })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  await generateAthleteSnapshot(userId, {
+    priorPlan: prior ? { sessions: toPriorPlanSessions(prior.sessions) } : null,
+  });
 }

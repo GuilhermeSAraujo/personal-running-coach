@@ -48,6 +48,7 @@ export const SESSION_TYPES = [
   "long_run",
   "interval",
   "recovery",
+  "rest",
 ] as const;
 export type SessionType = (typeof SESSION_TYPES)[number];
 

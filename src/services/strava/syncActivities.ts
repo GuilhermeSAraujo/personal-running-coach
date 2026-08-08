@@ -146,7 +146,9 @@ export async function syncActivitiesForAthlete(
   }
 
   const openPlan = await findOpenSessionPlan(user._id);
-  const openSessions = (openPlan?.sessions ?? []).filter(isSessionOpen);
+  const openSessions = (openPlan?.sessions ?? []).filter(
+    (s) => isSessionOpen(s) && s.type !== "rest",
+  );
   const needsMatchPhase =
     hadActivitiesBefore &&
     upserted > 0 &&
@@ -199,6 +201,7 @@ export async function syncActivitiesForAthlete(
           order: s.order,
           title: s.title,
           type: s.type,
+          scheduledDate: s.scheduledDate,
         })),
       suggestions,
     };

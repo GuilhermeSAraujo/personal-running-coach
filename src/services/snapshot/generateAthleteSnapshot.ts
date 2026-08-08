@@ -1,6 +1,7 @@
 import type { Types } from "mongoose";
 import { dbConnect } from "@/lib/db";
 import { Activity, AthleteSnapshot, User } from "@/models";
+import type { ContinuityPlanSession } from "@/services/ai/buildContinuityContext";
 import { generateNextSessions } from "@/services/ai/generateNextSessions";
 import { buildAthleteSnapshot } from "./buildAthleteSnapshot";
 import type { SnapshotActivityInput } from "./types";
@@ -10,6 +11,7 @@ const SNAPSHOT_SELECT =
 
 export async function generateAthleteSnapshot(
   userId: Types.ObjectId,
+  options?: { priorPlan?: { sessions: ContinuityPlanSession[] } | null },
 ): Promise<void> {
   await dbConnect();
 
@@ -46,6 +48,7 @@ export async function generateAthleteSnapshot(
       userId,
       athleteSnapshotId: created._id,
       snapshot,
+      priorPlan: options?.priorPlan ?? null,
     });
   } catch (error) {
     console.error("Failed to generate next sessions:", error);

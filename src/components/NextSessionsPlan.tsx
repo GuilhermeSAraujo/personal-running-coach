@@ -16,7 +16,7 @@ export function NextSessionsPlan({ plan }: Props) {
       <VStack gap={2} align="stretch" width="full">
         <Heading size="sm">Next trainings</Heading>
         <Text color="fg.muted" fontSize="sm">
-          No plan yet — sync activities to generate your next sessions.
+          No plan yet — sync activities to generate next week’s plan.
         </Text>
       </VStack>
     );
@@ -44,7 +44,7 @@ export function NextSessionsPlan({ plan }: Props) {
           return (
             <VStack key={session.order} gap={0.5} align="stretch">
               <Text fontWeight="semibold">
-                {session.order}. {session.title}
+                {session.scheduledDate} · {session.order}. {session.title}
                 {meta ? (
                   <Text as="span" fontWeight="normal" color="fg.muted">
                     {" "}

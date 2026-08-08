@@ -110,7 +110,7 @@ If **zero** sessions were matched:
 If matches were saved and the plan was superseded, but snapshot/plan generation fails:
 
 - response includes `matchesSaved: true` and `error: "plan_regen_failed"`
-- UI can call `POST /api/session-plans/regenerate`, which only runs `generateAthleteSnapshot` again
+- UI can call `POST /api/session-plans/regenerate`, which loads the latest `superseded` plan (for continuity context) and calls `generateAthleteSnapshot` again
 
 ---
 
@@ -146,6 +146,14 @@ User taps Sync
   → create AthleteSnapshot + SessionPlan
   → no matching UI
 ```
+
+---
+
+## Rolling weekly plan
+
+- Open plans are a rolling 7-day week (UTC), one entry per day including `rest`
+- Confirm ≥1 match supersedes and regenerates with continuity context (completed vs remaining) for the AI
+- New plan stores only the upcoming week; rest days are not matchable
 
 ---
 

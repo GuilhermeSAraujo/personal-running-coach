@@ -1,9 +1,13 @@
 import { SEGMENT_KINDS, SESSION_TYPES } from "@/models";
+import { rollingWeekDates } from "./planWindow";
 import type {
   AiNextSessionsResponse,
   AiPlannedSession,
   AiSessionSegment,
 } from "./types";
+
+const WEEK_LENGTH = 7;
+const SCHEDULED_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -83,6 +87,12 @@ function assertSession(value: unknown, path: string): AiPlannedSession {
   if (typeof value.order !== "number") {
     throw new Error(`${path}.order must be a number`);
   }
+  if (
+    typeof value.scheduledDate !== "string" ||
+    !SCHEDULED_DATE_PATTERN.test(value.scheduledDate)
+  ) {
+    throw new Error(`${path}.scheduledDate must be a YYYY-MM-DD string`);
+  }
   if (typeof value.title !== "string" || value.title.trim() === "") {
     throw new Error(`${path}.title must be a non-empty string`);
   }
@@ -107,12 +117,28 @@ function assertSession(value: unknown, path: string): AiPlannedSession {
   ) {
     throw new Error(`${path}.coachingNotes must be an array of strings`);
   }
-  if (!Array.isArray(value.segments) || value.segments.length < 1) {
+  if (!Array.isArray(value.segments)) {
+    throw new Error(`${path}.segments must be an array`);
+  }
+
+  const isRest = value.type === "rest";
+
+  if (isRest) {
+    if (value.segments.length !== 0) {
+      throw new Error(`${path}.segments must be empty for rest sessions`);
+    }
+    if (value.totalDistanceKmMin != null || value.totalDistanceKmMax != null) {
+      throw new Error(
+        `${path} must not set distance fields for rest sessions`,
+      );
+    }
+  } else if (value.segments.length < 1) {
     throw new Error(`${path}.segments must be a non-empty array`);
   }
 
   const session: AiPlannedSession = {
     order: value.order,
+    scheduledDate: value.scheduledDate,
     title: value.title,
     type: value.type as AiPlannedSession["type"],
     purpose: value.purpose,
@@ -122,10 +148,10 @@ function assertSession(value: unknown, path: string): AiPlannedSession {
     ),
   };
 
-  if (typeof value.totalDistanceKmMin === "number") {
+  if (!isRest && typeof value.totalDistanceKmMin === "number") {
     session.totalDistanceKmMin = value.totalDistanceKmMin;
   }
-  if (typeof value.totalDistanceKmMax === "number") {
+  if (!isRest && typeof value.totalDistanceKmMax === "number") {
     session.totalDistanceKmMax = value.totalDistanceKmMax;
   }
 
@@ -135,6 +161,7 @@ function assertSession(value: unknown, path: string): AiPlannedSession {
 /** Validates and normalizes Gemini JSON into a typed next-sessions payload. */
 export function validateSessionPlanResponse(
   value: unknown,
+  options?: { now?: Date },
 ): AiNextSessionsResponse {
   if (!isRecord(value)) {
     throw new Error("AI response must be an object");
@@ -144,20 +171,45 @@ export function validateSessionPlanResponse(
     throw new Error("rationale must be a string when present");
   }
 
-  if (!Array.isArray(value.sessions) || value.sessions.length !== 3) {
-    throw new Error("sessions must contain exactly 3 items");
+  if (!Array.isArray(value.sessions) || value.sessions.length !== WEEK_LENGTH) {
+    throw new Error("sessions must contain exactly 7 items");
   }
 
   const sessions = value.sessions.map((session, index) =>
     assertSession(session, `sessions[${index}]`),
   );
 
-  const orders = sessions.map((session) => session.order).sort((a, b) => a - b);
-  if (orders[0] !== 1 || orders[1] !== 2 || orders[2] !== 3) {
-    throw new Error("sessions must have orders 1, 2, and 3");
+  const orders = sessions
+    .map((session) => session.order)
+    .sort((a, b) => a - b);
+  if (!orders.every((order, index) => order === index + 1)) {
+    throw new Error("sessions must have orders 1 through 7");
   }
 
-  const response: AiNextSessionsResponse = { sessions };
+  if (!sessions.some((session) => session.type !== "rest")) {
+    throw new Error("sessions must include at least one non-rest session");
+  }
+
+  const expectedDates = rollingWeekDates(options?.now ?? new Date());
+  const byDate = [...sessions].sort((a, b) =>
+    a.scheduledDate.localeCompare(b.scheduledDate),
+  );
+  for (let i = 0; i < WEEK_LENGTH; i++) {
+    if (byDate[i]!.order !== i + 1) {
+      throw new Error(
+        "sessions must have orders 1 through 7 in chronological date order",
+      );
+    }
+    if (byDate[i]!.scheduledDate !== expectedDates[i]) {
+      throw new Error(
+        `sessions must cover each date in the rolling week (${expectedDates[0]}…${expectedDates[6]})`,
+      );
+    }
+  }
+
+  const response: AiNextSessionsResponse = {
+    sessions: [...sessions].sort((a, b) => a.order - b.order),
+  };
 
   if (typeof value.rationale === "string") {
     response.rationale = value.rationale;
