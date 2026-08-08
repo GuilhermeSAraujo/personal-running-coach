@@ -80,9 +80,13 @@ export {
 
 export {
   SESSION_PLAN_SCHEMA_VERSION,
+  SESSION_PLAN_STATUSES,
+  PLANNED_SESSION_STATUSES,
   SessionPlan,
   type IPlannedSession,
   type ISessionPlan,
   type ISessionSegment,
+  type PlannedSessionStatus,
   type SessionPlanDocument,
+  type SessionPlanStatus,
 } from "./SessionPlan";

@@ -66,8 +66,12 @@ export async function generateNextSessions(input: {
     userId: input.userId,
     athleteSnapshotId: input.athleteSnapshotId,
     schemaVersion: SESSION_PLAN_SCHEMA_VERSION,
+    status: "open",
     generatedAt,
     rationale: validated.rationale,
-    sessions: validated.sessions,
+    sessions: validated.sessions.map((session) => ({
+      ...session,
+      status: "open" as const,
+    })),
   });
 }

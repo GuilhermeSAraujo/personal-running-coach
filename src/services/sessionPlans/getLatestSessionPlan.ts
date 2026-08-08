@@ -11,7 +11,10 @@ export async function getLatestSessionPlan(
 ): Promise<SessionPlanSummary | null> {
   await dbConnect();
 
-  const doc = await SessionPlan.findOne({ userId })
+  const doc = await SessionPlan.findOne({
+    userId,
+    $or: [{ status: "open" }, { status: { $exists: false } }],
+  })
     .sort({ createdAt: -1 })
     .lean();
 
