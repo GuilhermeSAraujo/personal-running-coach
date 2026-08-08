@@ -6,6 +6,11 @@ import {
 } from "@/models";
 import { getJsonModel } from "./ai-client";
 import { buildContinuityContext, type ContinuityPlanSession } from "./buildContinuityContext";
+import {
+  assertSessionsRespectPaceGuards,
+  derivePaceGuardrails,
+  formatPaceGuardsForPrompt,
+} from "./paceGuards";
 import { rollingWeekWindow } from "./planWindow";
 import { nextSessionsResponseSchema } from "./sessionPlanSchema";
 import { validateSessionPlanResponse } from "./validateSessionPlan";
@@ -22,12 +27,16 @@ Regras:
 - Em rationale, diga quantos treinos (dias não-rest) há na semana e por quê.
 - Todos os textos em linguagem natural (title, purpose, coachingNotes, notes, rationale) em pt-BR.
 - Campos enum (type, kind) e números no formato da máquina.
-- Pace em minutos por km decimais (ex.: 6.5 = 6:30/km).
-- Adapte volume, longão e intensidade ao snapshot.
+- Pace no plano: minutos por km decimais (ex.: 6.5 = 6:30/km). O snapshot usa segundos por km — converta (345 s/km = 5.75 min/km).
+- Respeite estritamente os limites de ritmo do bloco "Limites de ritmo" no pedido do usuário, quando presente.
+- Sessões easy / recovery / long_run devem usar ritmos de conversação típicos do atleta (bem mais lentos que o melhor 5k). Nunca prescreva ritmo de prova ou intervalo em easy.
+- Segmentos work (tempo/interval) não podem ser mais rápidos que o melhor esforço estimado do snapshot.
+- Não invente ritmo de prova sem evidência no snapshot.
+- Adapte volume, longão e intensidade ao estado atual, metas e histórico do snapshot.
 - Se heartRateCoverage for baixo/incompleto, priorize percepção de esforço sobre zonas de FC.
-- Seja progressivo e seguro.
+- Seja progressivo e seguro; não simule prova sem necessidade.
 - Use segments (warmup/work/rest/cooldown/steady) para treinos; rest days usam segments [].
-- Se houver um bloco de continuidade JSON: preserve em linhas gerais as remainingSessions (objetivo, tipo, estrutura, datas quando ainda caírem na janela); permita ajustes leves; use completedSessions só como contexto do que já foi feito; não reemitir treinos já completed como sessões do novo plano.`;
+- Se houver um bloco de continuidade JSON: preserve em linhas gerais as remainingSessions (objetivo, tipo, estrutura, datas quando ainda caírem na janela); permita ajustes leves; use completedSessions só como contexto do que já foi feito; não reemitir treinos já completed como sessões do novo plano. Se remainingSessions tiverem ritmos irreais, corrija-os para respeitar os limites de ritmo.`;
 
 export type SnapshotForAi = Omit<IAthleteSnapshot, "userId" | "createdAt">;
 
@@ -43,10 +52,12 @@ export async function generateNextSessions(input: {
 
   const continuity =
     input.priorPlan != null ? buildContinuityContext(input.priorPlan, now) : null;
+  const paceGuards = derivePaceGuardrails(input.snapshot);
 
   const userText = [
     `Janela do plano (UTC): ${window.startDate} … ${window.endDate}`,
     `Snapshot do atleta (JSON):\n${JSON.stringify(input.snapshot)}`,
+    paceGuards ? formatPaceGuardsForPrompt(paceGuards) : null,
     continuity
       ? `Continuidade do plano anterior (JSON):\n${JSON.stringify(continuity)}`
       : null,
@@ -81,6 +92,9 @@ export async function generateNextSessions(input: {
   }
 
   const validated = validateSessionPlanResponse(parsed, { now });
+  if (paceGuards) {
+    assertSessionsRespectPaceGuards(validated.sessions, paceGuards);
+  }
   const generatedAt = new Date();
 
   await SessionPlan.create({
