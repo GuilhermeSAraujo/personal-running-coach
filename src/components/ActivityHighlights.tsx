@@ -6,7 +6,7 @@ import {
   formatPace,
 } from "@/lib/activityFormat";
 import type { ActivityHighlights, ActivitySummary } from "@/services/activities/highlights";
-import { Heading, Text, VStack } from "@chakra-ui/react";
+import { Card, Text, VStack } from "@chakra-ui/react";
 
 type Props = {
   highlights: ActivityHighlights;
@@ -64,46 +64,52 @@ export function ActivityHighlights({ highlights }: Props) {
 
   if (empty) {
     return (
-      <VStack gap={1} align="stretch" width="full">
-        <Heading size="xs" color="fg.muted">
-          Recent activity
-        </Heading>
-        <Text color="fg.muted" fontSize="sm">
-          No activities yet. Sync from Strava to get started.
-        </Text>
-      </VStack>
+      <Card.Root width="full">
+        <Card.Header>
+          <Card.Title>Recent activity</Card.Title>
+        </Card.Header>
+        <Card.Body>
+          <Text color="fg.muted" fontSize="sm">
+            No activities yet. Sync from Strava to get started.
+          </Text>
+        </Card.Body>
+      </Card.Root>
     );
   }
 
   return (
-    <VStack gap={2} align="stretch" width="full">
-      <Heading size="xs" color="fg.muted">
-        Recent activity
-      </Heading>
-      <HighlightRow
-        label="Last activity"
-        activity={last}
-        primary={(a) =>
-          `${formatDistanceKm(a.distanceKm)} · ${formatActivityType(a.type)}`
-        }
-        secondary={secondaryLast}
-      />
-      <HighlightRow
-        label="Longest"
-        activity={longest}
-        primary={(a) =>
-          `${formatDistanceKm(a.distanceKm)} · ${formatActivityType(a.type)}`
-        }
-        secondary={secondaryLongest}
-      />
-      <HighlightRow
-        label="Fastest"
-        activity={fastest}
-        primary={(a) =>
-          `${formatPace(a.paceSecondsPerKm)} · ${formatActivityType(a.type)}`
-        }
-        secondary={secondaryFastest}
-      />
-    </VStack>
+    <Card.Root width="full">
+      <Card.Header>
+        <Card.Title>Recent activity</Card.Title>
+      </Card.Header>
+      <Card.Body>
+        <VStack gap={2} align="stretch" width="full">
+          <HighlightRow
+            label="Last activity"
+            activity={last}
+            primary={(a) =>
+              `${formatDistanceKm(a.distanceKm)} · ${formatActivityType(a.type)}`
+            }
+            secondary={secondaryLast}
+          />
+          <HighlightRow
+            label="Longest"
+            activity={longest}
+            primary={(a) =>
+              `${formatDistanceKm(a.distanceKm)} · ${formatActivityType(a.type)}`
+            }
+            secondary={secondaryLongest}
+          />
+          <HighlightRow
+            label="Fastest"
+            activity={fastest}
+            primary={(a) =>
+              `${formatPace(a.paceSecondsPerKm)} · ${formatActivityType(a.type)}`
+            }
+            secondary={secondaryFastest}
+          />
+        </VStack>
+      </Card.Body>
+    </Card.Root>
   );
 }

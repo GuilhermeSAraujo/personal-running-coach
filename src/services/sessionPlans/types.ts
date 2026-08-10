@@ -1,3 +1,4 @@
+import type { PlannedSessionStatus } from "@/models/SessionPlan";
 import type { SegmentKind, SessionType } from "@/models/shared";
 
 export type SessionSegmentSummary = {
@@ -24,6 +25,9 @@ export type PlannedSessionSummary = {
   totalDistanceKmMax?: number;
   coachingNotes: string[];
   segments: SessionSegmentSummary[];
+  status: PlannedSessionStatus;
+  activityId?: string;
+  matchedAt?: string;
 };
 
 export type SessionPlanSummary = {

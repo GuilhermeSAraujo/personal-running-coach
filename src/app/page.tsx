@@ -1,8 +1,11 @@
 import { auth, signIn, signOut } from "@/auth"
 import { ActivityHighlights } from "@/components/ActivityHighlights"
-import { NextSessionsPlan } from "@/components/NextSessionsPlan"
+import { AppNav } from "@/components/AppNav"
+import {
+  NextSessionsPlan,
+  ProgressLink,
+} from "@/components/NextSessionsPlan"
 import { OnboardingModal } from "@/components/OnboardingModal"
-import { SyncActivitiesButton } from "@/components/SyncActivitiesButton"
 import { dbConnect } from "@/lib/db"
 import { User } from "@/models"
 import {
@@ -14,6 +17,11 @@ import {
   type SessionPlanSummary,
 } from "@/services/sessionPlans/getLatestSessionPlan"
 import { Button, Container, Heading, Text, VStack } from "@chakra-ui/react"
+
+async function signOutAction() {
+  "use server"
+  await signOut()
+}
 
 export default async function HomePage() {
   const session = await auth()
@@ -62,23 +70,12 @@ export default async function HomePage() {
           </>
         ) : (
           <VStack gap={6} align="stretch">
-            <Heading size="md" textAlign="center">
-              Logged in as {session.user?.name}
-            </Heading>
+            <AppNav
+              userName={session.user?.name}
+              signOutAction={signOutAction}
+            />
             <NextSessionsPlan plan={sessionPlan} />
-            <VStack gap={3} align="stretch">
-              <SyncActivitiesButton />
-              <form
-                action={async () => {
-                  "use server"
-                  await signOut()
-                }}
-              >
-                <Button type="submit" variant="outline" colorPalette="red" width="full">
-                  Sign Out
-                </Button>
-              </form>
-            </VStack>
+            <ProgressLink />
             {highlights ? <ActivityHighlights highlights={highlights} /> : null}
             <OnboardingModal open={needsOnboarding} />
           </VStack>

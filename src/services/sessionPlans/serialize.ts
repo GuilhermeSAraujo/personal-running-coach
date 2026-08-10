@@ -57,6 +57,13 @@ function toSession(session: IPlannedSession): PlannedSessionSummary {
       : {}),
     coachingNotes: session.coachingNotes ?? [],
     segments: (session.segments ?? []).map(toSegment),
+    status: session.status ?? "open",
+    ...(session.activityId != null
+      ? { activityId: String(session.activityId) }
+      : {}),
+    ...(session.matchedAt != null
+      ? { matchedAt: session.matchedAt.toISOString() }
+      : {}),
   };
 }
 

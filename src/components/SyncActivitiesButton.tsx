@@ -1,8 +1,8 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
-import { Button, Text, VStack } from "@chakra-ui/react"
+import { Button, HStack, Text, VStack } from "@chakra-ui/react"
 import {
   formatActivityDate,
   formatDistanceKm,
@@ -45,7 +45,19 @@ function suggestionReason(
   return suggestion.reasons.join(" · ")
 }
 
-export function SyncActivitiesButton() {
+type SyncActivitiesButtonProps = {
+  compact?: boolean
+  /** Shown on the left of the compact nav row (e.g. home link). */
+  leading?: ReactNode
+  /** Shown next to the compact Sync button (e.g. Sign Out). */
+  trailing?: ReactNode
+}
+
+export function SyncActivitiesButton({
+  compact = false,
+  leading,
+  trailing,
+}: SyncActivitiesButtonProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [confirming, setConfirming] = useState(false)
@@ -201,19 +213,33 @@ export function SyncActivitiesButton() {
     })
   }
 
+  const syncButton = (
+    <Button
+      colorPalette="orange"
+      size={compact ? "sm" : "lg"}
+      width={compact ? "auto" : "full"}
+      loading={loading}
+      loadingText="Syncing…"
+      onClick={handleSync}
+      disabled={confirming || retrying}
+    >
+      Sync activities
+    </Button>
+  )
+
   return (
     <VStack gap={3} align="stretch" width="full">
-      <Button
-        colorPalette="orange"
-        size="lg"
-        width="full"
-        loading={loading}
-        loadingText="Syncing…"
-        onClick={handleSync}
-        disabled={confirming || retrying}
-      >
-        Sync activities
-      </Button>
+      {compact ? (
+        <HStack justify="space-between" align="center" width="full" gap={3}>
+          {leading}
+          <HStack gap={2} align="center" flexShrink={0}>
+            {syncButton}
+            {trailing}
+          </HStack>
+        </HStack>
+      ) : (
+        syncButton
+      )}
 
       {matchPhase ? (
         <VStack
