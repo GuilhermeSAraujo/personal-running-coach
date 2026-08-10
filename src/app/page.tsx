@@ -1,21 +1,17 @@
 import { auth, signIn, signOut } from "@/auth"
 import { ActivityHighlights } from "@/components/ActivityHighlights"
 import { AppNav } from "@/components/AppNav"
-import {
-  NextSessionsPlan,
-  ProgressLink,
-} from "@/components/NextSessionsPlan"
 import { OnboardingModal } from "@/components/OnboardingModal"
+import { ProgressHistory } from "@/components/progress/ProgressHistory"
+import { ProgressThisWeek } from "@/components/progress/ProgressThisWeek"
 import { dbConnect } from "@/lib/db"
 import { User } from "@/models"
 import {
   getActivityHighlights,
   type ActivityHighlights as ActivityHighlightsData,
 } from "@/services/activities/highlights"
-import {
-  getLatestSessionPlan,
-  type SessionPlanSummary,
-} from "@/services/sessionPlans/getLatestSessionPlan"
+import { getProgressFollowUp } from "@/services/progress/getProgressFollowUp"
+import type { ProgressFollowUp } from "@/services/progress/types"
 import { Button, Container, Heading, Text, VStack } from "@chakra-ui/react"
 
 async function signOutAction() {
@@ -28,7 +24,7 @@ export default async function HomePage() {
 
   let needsOnboarding = false
   let highlights: ActivityHighlightsData | null = null
-  let sessionPlan: SessionPlanSummary | null = null
+  let progress: ProgressFollowUp | null = null
 
   if (session?.stravaAthleteId) {
     await dbConnect()
@@ -39,9 +35,9 @@ export default async function HomePage() {
       .lean()
     needsOnboarding = !user?.goal?.type
     if (user) {
-      ;[highlights, sessionPlan] = await Promise.all([
+      ;[highlights, progress] = await Promise.all([
         getActivityHighlights(user._id),
-        getLatestSessionPlan(user._id),
+        getProgressFollowUp(user._id),
       ])
     }
   }
@@ -69,13 +65,26 @@ export default async function HomePage() {
             </form>
           </>
         ) : (
-          <VStack gap={6} align="stretch">
+          <VStack gap={8} align="stretch">
             <AppNav
               userName={session.user?.name}
               signOutAction={signOutAction}
             />
-            <NextSessionsPlan plan={sessionPlan} />
-            <ProgressLink />
+
+            <VStack gap={2} align="stretch">
+              <Heading size="md">Progress</Heading>
+              <Text fontSize="sm" color="fg.muted">
+                What you’ve done and what’s still ahead.
+              </Text>
+            </VStack>
+
+            <ProgressThisWeek
+              planId={progress?.thisWeek?.planId ?? null}
+              sessions={progress?.thisWeek?.sessions ?? []}
+            />
+
+            <ProgressHistory items={progress?.history ?? []} />
+
             {highlights ? <ActivityHighlights highlights={highlights} /> : null}
             <OnboardingModal open={needsOnboarding} />
           </VStack>
