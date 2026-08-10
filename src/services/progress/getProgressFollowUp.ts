@@ -1,5 +1,6 @@
 import { dbConnect } from "@/lib/db";
 import { Activity, SessionPlan, type IActivity, type IPlannedSession } from "@/models";
+import type { SessionType } from "@/models/shared";
 import type { Types } from "mongoose";
 import type {
   ProgressActivitySummary,
@@ -15,6 +16,19 @@ type LeanActivity = Pick<
   IActivity,
   "distanceKm" | "durationSeconds" | "paceSecondsPerKm" | "startedAt"
 > & { _id: Types.ObjectId };
+
+export type PriorMatchedSession = {
+  scheduledDate: string;
+  title: string;
+  type: SessionType;
+  purpose: string;
+  totalDistanceKmMin?: number;
+  totalDistanceKmMax?: number;
+  paceMinPerKm?: number;
+  paceMaxPerKm?: number;
+  activity?: ProgressActivitySummary;
+  activityUnavailable?: boolean;
+};
 
 function toUtcDateString(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -76,12 +90,76 @@ function isInHistoryWindow(
   return false;
 }
 
-function timelineSortKey(item: ProgressTimelineItem): string {
+export function timelineSortKey(item: ProgressTimelineItem): string {
   if (item.kind === "unplanned") {
     return `${item.date}T${item.activity.startedAt}`;
   }
   const activityDate = item.activity?.startedAt.slice(0, 10);
   return `${activityDate ?? item.scheduledDate}T${item.activity?.startedAt ?? item.scheduledDate}`;
+}
+
+/** Newest first. */
+export function sortHistoryNewestFirst(
+  history: ProgressTimelineItem[],
+): ProgressTimelineItem[] {
+  return [...history].sort((a, b) =>
+    timelineSortKey(b).localeCompare(timelineSortKey(a)),
+  );
+}
+
+/**
+ * First match for each scheduledDate wins (call with plans newest-first so
+ * the most recent superseded match is preferred).
+ */
+export function buildPriorMatchByDate(
+  matches: PriorMatchedSession[],
+): Map<string, PriorMatchedSession> {
+  const map = new Map<string, PriorMatchedSession>();
+  for (const match of matches) {
+    if (!map.has(match.scheduledDate)) {
+      map.set(match.scheduledDate, match);
+    }
+  }
+  return map;
+}
+
+export function overlayPriorMatchesOnThisWeek(
+  sessions: ProgressSession[],
+  priorByDate: Map<string, PriorMatchedSession>,
+): ProgressSession[] {
+  return sessions.map((session) => {
+    if (session.status !== "open") return session;
+    const prior = priorByDate.get(session.scheduledDate);
+    if (!prior) return session;
+    return {
+      order: session.order,
+      scheduledDate: session.scheduledDate,
+      title: prior.title,
+      type: prior.type,
+      purpose: prior.purpose,
+      ...(prior.totalDistanceKmMin != null
+        ? { totalDistanceKmMin: prior.totalDistanceKmMin }
+        : {}),
+      ...(prior.totalDistanceKmMax != null
+        ? { totalDistanceKmMax: prior.totalDistanceKmMax }
+        : {}),
+      ...(prior.paceMinPerKm != null ? { paceMinPerKm: prior.paceMinPerKm } : {}),
+      ...(prior.paceMaxPerKm != null ? { paceMaxPerKm: prior.paceMaxPerKm } : {}),
+      status: "matched" as const,
+      ...(prior.activity ? { activity: prior.activity } : {}),
+      ...(prior.activityUnavailable ? { activityUnavailable: true } : {}),
+    };
+  });
+}
+
+export function matchedDatesInThisWeek(sessions: ProgressSession[]): Set<string> {
+  const dates = new Set<string>();
+  for (const session of sessions) {
+    if (session.status === "matched") {
+      dates.add(session.scheduledDate);
+    }
+  }
+  return dates;
 }
 
 function toProgressSession(
@@ -114,6 +192,34 @@ function toProgressSession(
     ...(status === "matched" && activityId && !activity
       ? { activityUnavailable: true }
       : {}),
+  };
+}
+
+function toPriorMatchedSession(
+  session: IPlannedSession,
+  activityById: Map<string, ProgressActivitySummary>,
+): PriorMatchedSession | null {
+  if (session.status !== "matched") return null;
+
+  const activityId =
+    session.activityId != null ? String(session.activityId) : undefined;
+  const activity = activityId ? activityById.get(activityId) : undefined;
+  const pace = sessionPaceRange(session);
+
+  return {
+    scheduledDate: session.scheduledDate,
+    title: session.title,
+    type: session.type,
+    purpose: session.purpose,
+    ...(session.totalDistanceKmMin != null
+      ? { totalDistanceKmMin: session.totalDistanceKmMin }
+      : {}),
+    ...(session.totalDistanceKmMax != null
+      ? { totalDistanceKmMax: session.totalDistanceKmMax }
+      : {}),
+    ...pace,
+    ...(activity ? { activity } : {}),
+    ...(activityId && !activity ? { activityUnavailable: true } : {}),
   };
 }
 
@@ -177,18 +283,34 @@ export async function getProgressFollowUp(
 
   const openPlanId = openPlan ? String(openPlan._id) : null;
 
+  const priorMatches: PriorMatchedSession[] = [];
+  for (const plan of plans) {
+    for (const session of plan.sessions ?? []) {
+      const prior = toPriorMatchedSession(session, activityById);
+      if (prior) priorMatches.push(prior);
+    }
+  }
+  const priorByDate = buildPriorMatchByDate(priorMatches);
+
   let thisWeek: ProgressFollowUp["thisWeek"] = null;
   if (openPlan) {
-    const sessions = [...(openPlan.sessions ?? [])]
-      .sort((a, b) => a.order - b.order)
-      .map((session) => toProgressSession(session, activityById))
-      .filter((session): session is ProgressSession => session != null);
+    const sessions = overlayPriorMatchesOnThisWeek(
+      [...(openPlan.sessions ?? [])]
+        .sort((a, b) => a.order - b.order)
+        .map((session) => toProgressSession(session, activityById))
+        .filter((session): session is ProgressSession => session != null),
+      priorByDate,
+    );
 
     thisWeek = {
       planId: String(openPlan._id),
       sessions,
     };
   }
+
+  const thisWeekMatchedDates = matchedDatesInThisWeek(
+    thisWeek?.sessions ?? [],
+  );
 
   const matchedActivityIds = new Set<string>();
   for (const plan of plans) {
@@ -206,6 +328,8 @@ export async function getProgressFollowUp(
 
     for (const session of plan.sessions ?? []) {
       if (session.status !== "matched") continue;
+      // Already shown as Done under This week (including overlay).
+      if (thisWeekMatchedDates.has(session.scheduledDate)) continue;
 
       const activityId =
         session.activityId != null ? String(session.activityId) : undefined;
@@ -254,9 +378,5 @@ export async function getProgressFollowUp(
     });
   }
 
-  history.sort((a, b) =>
-    timelineSortKey(a).localeCompare(timelineSortKey(b)),
-  );
-
-  return { thisWeek, history };
+  return { thisWeek, history: sortHistoryNewestFirst(history) };
 }

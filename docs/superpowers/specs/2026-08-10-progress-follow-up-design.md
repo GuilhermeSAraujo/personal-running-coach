@@ -18,25 +18,26 @@ Give the athlete one mobile-first page to see **what they’ve already done** an
 | Approach | Dedicated page on live `SessionPlan` + `Activity` stack |
 | Layout | Mobile-first single column; planned vs actual never side-by-side columns |
 | Skipped sessions | Omit from display in v1 |
-| This week vs history | Matched (and other) sessions from the open plan appear only under This week |
+| This week vs history | Open-plan sessions appear under This week; if an open session’s date was already matched on a superseded plan, overlay that match as Done in This week and omit it from history |
 | Models | No new models; do not wire `Workout` / `TrainingPlan` / `Evaluation` |
 | Out of scope | AthleteSnapshot trends, hit/miss scoring, match editing, automated tests |
 
 ## Page structure
 
 1. **This week** — open `SessionPlan` in schedule order: matched (planned + actual), open (prescription), rest as Rest. Link to `/session-plans/[id]`.
-2. **Recent history (~4 weeks)** — chronological ascending timeline: matched sessions from superseded plans in the window + unplanned activities interleaved by date.
+2. **Recent history (~4 weeks)** — newest-first timeline: matched sessions from superseded plans in the window + unplanned activities interleaved by date. Matched dates already shown under This week (including overlay from prior plans) are omitted here.
 3. Empty states nudge sync / plan generation when needed.
 
 ## Data assembly
 
 `getProgressFollowUp(userId)`:
 
-1. Load open `SessionPlan`; attach Activity summaries for matched sessions (`distanceKm`, `durationSeconds`, `paceSecondsPerKm`, `startedAt`). Orphan `activityId` → planned only + `activityUnavailable`.
+1. Load open `SessionPlan`; attach Activity summaries for matched sessions (`distanceKm`, `durationSeconds`, `paceSecondsPerKm`, `startedAt`). Orphan `activityId` → planned only + `activityUnavailable`. If an open session’s `scheduledDate` was already matched on a scanned superseded plan, overlay that match as Done in This week.
 2. Load activities with `startedAt` in the last 28 days.
-3. Scan recent plans (open + superseded); emit matched sessions in the window for history, excluding the open plan’s sessions (owned by This week).
+3. Scan recent plans (open + superseded); emit matched sessions in the window for history, excluding the open plan’s sessions and any `scheduledDate` already shown as matched under This week.
 4. Emit unplanned activities whose `_id` is not referenced by any matched session in the scanned plans.
-5. Extend `PlannedSessionSummary` with `status`, `activityId`, `matchedAt` for reuse elsewhere; progress uses its own DTOs with joined activity facts.
+5. Sort history newest-first.
+6. Extend `PlannedSessionSummary` with `status`, `activityId`, `matchedAt` for reuse elsewhere; progress uses its own DTOs with joined activity facts.
 
 ## UI
 
