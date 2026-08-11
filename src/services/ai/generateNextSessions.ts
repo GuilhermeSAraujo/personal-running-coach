@@ -67,6 +67,7 @@ export async function generateNextSessions(input: {
     input.priorPlan != null ? buildContinuityContext(input.priorPlan, now) : null;
   const paceGuards = derivePaceGuardrails(input.snapshot);
 
+  // AI Prompt builder
   const userText = [
     `Janela do plano (UTC): ${window.startDate} … ${window.endDate}`,
     `Snapshot do atleta (JSON):\n${JSON.stringify(input.snapshot)}`,
