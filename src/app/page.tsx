@@ -1,4 +1,5 @@
 import { auth, signIn, signOut } from "@/auth"
+import Link from "next/link"
 import { ActivityHighlights } from "@/components/ActivityHighlights"
 import { AppNav } from "@/components/AppNav"
 import { OnboardingModal } from "@/components/OnboardingModal"
@@ -77,6 +78,12 @@ export default async function HomePage() {
                 What you’ve done and what’s still ahead.
               </Text>
             </VStack>
+
+            <Link href="/metrics" style={{ textDecoration: "none", width: "100%" }}>
+              <Button colorPalette="orange" variant="outline" size="lg" width="full">
+                Training metrics
+              </Button>
+            </Link>
 
             <ProgressThisWeek
               planId={progress?.thisWeek?.planId ?? null}
