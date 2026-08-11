@@ -127,6 +127,11 @@ export interface IAthleteSnapshot {
     lifetimeRuns: number;
   };
   currentState: ICurrentState;
+  /**
+   * Compact labeled-text athlete context sent to the LLM (debug / replay).
+   * Set at plan-generation time; never duplicate rich snapshot JSON in the prompt.
+   */
+  promptText?: string;
   createdAt: Date;
 }
 
@@ -327,6 +332,7 @@ const AthleteSnapshotSchema = new Schema<IAthleteSnapshot>(
       lifetimeRuns: { type: Number, required: true },
     },
     currentState: { type: currentStateSchema, required: true },
+    promptText: { type: String },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },
