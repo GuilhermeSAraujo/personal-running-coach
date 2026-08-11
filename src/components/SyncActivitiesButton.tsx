@@ -155,7 +155,7 @@ export function SyncActivitiesButton({
       if (data?.error === "plan_regen_failed" && data.matchesSaved) {
         setMatchPhase(null)
         setNeedsRegenRetry(true)
-        setError("Matches saved, but generating the next plan failed.")
+        setError("Activities saved, but generating the next plan failed.")
         return
       }
 
@@ -165,9 +165,6 @@ export function SyncActivitiesButton({
       }
 
       setMatchPhase(null)
-      if (data.matchedCount === 0) {
-        setMessage("Activities saved. Plan unchanged.")
-      }
       router.refresh()
     } catch {
       setError("Confirm failed")

@@ -16,8 +16,9 @@ Primary code:
 | --- | --- | --- | --- |
 | Phase 1 sync (import) | **Upserted** from Strava | **Read only** (for suggestions) | None in the match path |
 | Phase 1 sync (first sync / no open plan) | **Upserted** | Untouched | May create `AthleteSnapshot` + new `SessionPlan` |
-| Confirm with ≥1 match | **Unchanged** | **Updated** (sessions linked, plan `superseded`) | New `AthleteSnapshot` + new open `SessionPlan` |
-| Confirm with 0 matches / Skip matching | **Unchanged** (already saved in phase 1) | **Unchanged** | None |
+| Confirm matches (≥1 linked session) | **Unchanged** | **Updated** (sessions linked, plan `superseded`) | New `AthleteSnapshot` + new open `SessionPlan` |
+| Confirm with 0 matches (all “Not in plan”) | **Unchanged** (already saved in phase 1) | **Superseded** (no session links) | New `AthleteSnapshot` + new open `SessionPlan` |
+| Skip matching | **Unchanged** (already saved in phase 1) | **Unchanged** | None |
 | Retry generate plan | Unchanged | Unchanged | New `AthleteSnapshot` + new open `SessionPlan` |
 
 Matching stores the link on the **plan side** (`sessions[].activityId`). Activity documents do not get a back-reference to the plan.
@@ -91,15 +92,13 @@ For each match with a `sessionOrder`:
 
 Activities listed as `sessionOrder: null` (“Not in plan”) do not change any session.
 
-If **at least one** session was matched:
+On every Confirm (including when every activity is “Not in plan” and `matchedCount` is 0):
 
+- apply any session links from the payload (none when all are “Not in plan”)
 - `session_plans.status` → `"superseded"`
 - then `generateAthleteSnapshot(userId)` → new `AthleteSnapshot` + new `SessionPlan` (`status: "open"`, sessions default `open`)
 
-If **zero** sessions were matched:
-
-- plan stays `open`
-- no snapshot / no new plan
+Skip matching does not call this API; the open plan is never superseded and no snapshot or new plan is created.
 
 ### Activity documents during confirm
 
@@ -128,14 +127,25 @@ User confirms matches
   → create new SessionPlan (open)
 ```
 
-### Skip or all “Not in plan”
+### Skip matching
 
 ```text
 User taps Sync
   → upsert Activity docs
-User skips / confirms with no session links
+User skips matching
   → SessionPlan unchanged
   → no new snapshot/plan
+```
+
+### Confirm with all “Not in plan”
+
+```text
+User taps Sync
+  → upsert Activity docs
+User confirms with no session links
+  → SessionPlan status=superseded (no session links)
+  → create AthleteSnapshot
+  → create new SessionPlan (open)
 ```
 
 ### First sync
@@ -152,7 +162,7 @@ User taps Sync
 ## Rolling weekly plan
 
 - Open plans are a rolling 7-day week (UTC), one entry per day including `rest`
-- Confirm ≥1 match supersedes and regenerates with continuity context (completed vs remaining) for the AI
+- Confirm (including zero matches) supersedes and regenerates with continuity context (completed vs remaining) for the AI
 - New plan stores only the upcoming week; rest days are not matchable
 
 ---

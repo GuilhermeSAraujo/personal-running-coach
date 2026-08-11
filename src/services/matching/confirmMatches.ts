@@ -148,15 +148,9 @@ export async function confirmMatches(input: {
     matchedCount += 1;
   }
 
-  if (matchedCount >= 1) {
-    plan.status = "superseded";
-  }
+  plan.status = "superseded";
 
   await plan.save();
-
-  if (matchedCount === 0) {
-    return { ok: true, matchedCount: 0, regenerated: false };
-  }
 
   try {
     await generateAthleteSnapshot(input.userId, {
