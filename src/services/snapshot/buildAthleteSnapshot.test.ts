@@ -110,10 +110,38 @@ function testGoalAndRecentTraining() {
   assert.equal(snapshot.currentState.weeklyVolumeKm.currentWeek, 5.1);
 }
 
+function testRecentActivityIncludesAthleteFeedbackWhenPresent() {
+  const now = new Date("2026-07-01T12:00:00.000Z");
+  const activities = [
+    run({
+      startedAt: new Date("2026-06-30T10:00:00.000Z"),
+      distanceKm: 8,
+      athleteFeedback: {
+        effort: "too_hard",
+        notes: "Legs heavy after km 5",
+      },
+    }),
+    run({
+      startedAt: new Date("2026-06-28T10:00:00.000Z"),
+      distanceKm: 5,
+    }),
+  ];
+  const snapshot = buildAthleteSnapshot({ user: {}, activities, now });
+  assert.deepEqual(snapshot.recentTraining.recentActivities[0].athleteFeedback, {
+    effort: "too_hard",
+    notes: "Legs heavy after km 5",
+  });
+  assert.equal(
+    "athleteFeedback" in snapshot.recentTraining.recentActivities[1],
+    false,
+  );
+}
+
 testEmptyAthleteProducesZeroFilledSnapshot();
 testMissingGoalOmitsGoalKey();
 testAgeYearsComputedFromBirthDate();
 testAgeYearsBeforeBirthdayThisYear();
 testGoalAndRecentTraining();
+testRecentActivityIncludesAthleteFeedbackWhenPresent();
 
 console.log("buildAthleteSnapshot tests passed");

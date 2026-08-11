@@ -1,12 +1,21 @@
 import mongoose, { type Types } from "mongoose";
 import { dbConnect } from "@/lib/db";
-import { Activity, SessionPlan } from "@/models";
+import {
+  Activity,
+  ATHLETE_EFFORTS,
+  ATHLETE_NOTES_MAX_LENGTH,
+  SessionPlan,
+  type AthleteEffort,
+  type IAthleteFeedback,
+} from "@/models";
 import { toPriorPlanSessions } from "@/services/ai/buildContinuityContext";
 import { generateAthleteSnapshot } from "@/services/snapshot/generateAthleteSnapshot";
 
 export type ConfirmMatchEntry = {
   activityId: string;
   sessionOrder: number | null;
+  effort?: AthleteEffort;
+  notes?: string;
 };
 
 export class ConfirmMatchesError extends Error {
@@ -107,6 +116,52 @@ export async function confirmMatches(input: {
     throw new ConfirmMatchesError(
       "Activity is already linked to another session",
       409,
+    );
+  }
+
+  const feedbackUpdates: Array<{
+    activityId: string;
+    athleteFeedback: IAthleteFeedback;
+  }> = [];
+
+  for (const entry of input.matches) {
+    const athleteFeedback: IAthleteFeedback = {};
+
+    if (entry.effort != null) {
+      if (!(ATHLETE_EFFORTS as readonly string[]).includes(entry.effort)) {
+        throw new ConfirmMatchesError("Invalid effort value", 400);
+      }
+      athleteFeedback.effort = entry.effort;
+    }
+
+    if (entry.notes != null) {
+      const notes = entry.notes.trim();
+      if (notes.length > ATHLETE_NOTES_MAX_LENGTH) {
+        throw new ConfirmMatchesError(
+          `Notes must be at most ${ATHLETE_NOTES_MAX_LENGTH} characters`,
+          400,
+        );
+      }
+      if (notes.length > 0) {
+        athleteFeedback.notes = notes;
+      }
+    }
+
+    if (athleteFeedback.effort != null || athleteFeedback.notes != null) {
+      feedbackUpdates.push({
+        activityId: entry.activityId,
+        athleteFeedback,
+      });
+    }
+  }
+
+  for (const update of feedbackUpdates) {
+    await Activity.updateOne(
+      {
+        _id: new mongoose.Types.ObjectId(update.activityId),
+        userId: input.userId,
+      },
+      { $set: { athleteFeedback: update.athleteFeedback } },
     );
   }
 

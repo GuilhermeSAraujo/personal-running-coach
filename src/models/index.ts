@@ -35,10 +35,14 @@ export {
 } from "./User";
 
 export {
+  ATHLETE_EFFORTS,
+  ATHLETE_NOTES_MAX_LENGTH,
   Activity,
   type ActivityDocument,
+  type AthleteEffort,
   type IActivity,
   type IActivityTraining,
+  type IAthleteFeedback,
 } from "./Activity";
 
 export {

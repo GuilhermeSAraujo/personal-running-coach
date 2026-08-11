@@ -33,6 +33,7 @@ Regras:
 - Segmentos work (tempo/interval) não podem ser mais rápidos que o melhor esforço estimado do snapshot.
 - Não invente ritmo de prova sem evidência no snapshot.
 - Adapte volume, longão e intensidade ao estado atual, metas e histórico do snapshot.
+- Se recentActivities tiverem athleteFeedback (effort/notes), adapte carga e intensidade na sequência (ex.: too_hard → aliviar treinos semelhantes; too_easy → progressão um pouco mais exigente quando seguro).
 - Se heartRateCoverage for baixo/incompleto, priorize percepção de esforço sobre zonas de FC.
 - Seja progressivo e seguro; não simule prova sem necessidade.
 - Use segments (warmup/work/rest/cooldown/steady) para treinos; rest days usam segments [].

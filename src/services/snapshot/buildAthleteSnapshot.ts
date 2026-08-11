@@ -43,6 +43,17 @@ function toSnapshotActivity(activity: SnapshotActivityInput): ISnapshotActivity 
   if (activity.sufferScore != null) {
     result.sufferScore = activity.sufferScore;
   }
+  const feedback = activity.athleteFeedback;
+  if (feedback) {
+    const athleteFeedback: ISnapshotActivity["athleteFeedback"] = {};
+    if (feedback.effort != null) athleteFeedback.effort = feedback.effort;
+    if (feedback.notes != null && feedback.notes !== "") {
+      athleteFeedback.notes = feedback.notes;
+    }
+    if (athleteFeedback.effort != null || athleteFeedback.notes != null) {
+      result.athleteFeedback = athleteFeedback;
+    }
+  }
   return result;
 }
 

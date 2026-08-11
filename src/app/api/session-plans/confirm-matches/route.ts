@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/db";
-import { User } from "@/models";
+import { ATHLETE_EFFORTS, User, type AthleteEffort } from "@/models";
 import {
   ConfirmMatchesError,
   confirmMatches,
@@ -22,20 +22,40 @@ function parseMatches(value: unknown): ConfirmMatchEntry[] | null {
     if (typeof record.activityId !== "string" || !record.activityId) {
       return null;
     }
+
+    let sessionOrder: number | null;
     if (record.sessionOrder === null) {
-      matches.push({ activityId: record.activityId, sessionOrder: null });
-      continue;
-    }
-    if (
-      typeof record.sessionOrder !== "number" ||
-      !Number.isInteger(record.sessionOrder)
+      sessionOrder = null;
+    } else if (
+      typeof record.sessionOrder === "number" &&
+      Number.isInteger(record.sessionOrder)
     ) {
+      sessionOrder = record.sessionOrder;
+    } else {
       return null;
     }
-    matches.push({
+
+    const entry: ConfirmMatchEntry = {
       activityId: record.activityId,
-      sessionOrder: record.sessionOrder,
-    });
+      sessionOrder,
+    };
+
+    if (record.effort !== undefined) {
+      if (
+        typeof record.effort !== "string" ||
+        !(ATHLETE_EFFORTS as readonly string[]).includes(record.effort)
+      ) {
+        return null;
+      }
+      entry.effort = record.effort as AthleteEffort;
+    }
+
+    if (record.notes !== undefined) {
+      if (typeof record.notes !== "string") return null;
+      entry.notes = record.notes;
+    }
+
+    matches.push(entry);
   }
   return matches;
 }
@@ -63,7 +83,10 @@ export async function POST(request: Request) {
   const matches = parseMatches(body.matches);
   if (!matches) {
     return NextResponse.json(
-      { error: "matches must be an array of { activityId, sessionOrder }" },
+      {
+        error:
+          "matches must be an array of { activityId, sessionOrder, effort?, notes? }",
+      },
       { status: 400 },
     );
   }

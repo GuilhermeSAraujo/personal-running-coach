@@ -25,6 +25,8 @@ type MatchPhaseState = {
 /** Empty string means "Not in plan". */
 type AssignmentMap = Record<string, string>
 
+type FeedbackMap = Record<string, { effort: string; notes: string }>
+
 function buildInitialAssignments(phase: MatchPhaseState): AssignmentMap {
   const map: AssignmentMap = {}
   const suggestionByActivity = new Map(
@@ -32,6 +34,14 @@ function buildInitialAssignments(phase: MatchPhaseState): AssignmentMap {
   )
   for (const activity of phase.activities) {
     map[activity.id] = suggestionByActivity.get(activity.id) ?? ""
+  }
+  return map
+}
+
+function buildInitialFeedback(phase: MatchPhaseState): FeedbackMap {
+  const map: FeedbackMap = {}
+  for (const activity of phase.activities) {
+    map[activity.id] = { effort: "", notes: "" }
   }
   return map
 }
@@ -66,6 +76,7 @@ export function SyncActivitiesButton({
   const [message, setMessage] = useState<string | null>(null)
   const [matchPhase, setMatchPhase] = useState<MatchPhaseState | null>(null)
   const [assignments, setAssignments] = useState<AssignmentMap>({})
+  const [feedback, setFeedback] = useState<FeedbackMap>({})
   const [needsRegenRetry, setNeedsRegenRetry] = useState(false)
 
   const usedSessionOrders = useMemo(() => {
@@ -104,6 +115,7 @@ export function SyncActivitiesButton({
         }
         setMatchPhase(phase)
         setAssignments(buildInitialAssignments(phase))
+        setFeedback(buildInitialFeedback(phase))
         return
       }
       setMatchPhase(null)
@@ -118,6 +130,7 @@ export function SyncActivitiesButton({
   function handleSkipMatching() {
     setMatchPhase(null)
     setAssignments({})
+    setFeedback({})
     setMessage("Activities saved. Plan unchanged.")
     router.refresh()
   }
@@ -130,9 +143,13 @@ export function SyncActivitiesButton({
     try {
       const matches = matchPhase.activities.map((activity) => {
         const raw = assignments[activity.id] ?? ""
+        const fb = feedback[activity.id] ?? { effort: "", notes: "" }
+        const notes = fb.notes.trim()
         return {
           activityId: activity.id,
           sessionOrder: raw === "" ? null : Number(raw),
+          ...(fb.effort ? { effort: fb.effort } : {}),
+          ...(notes ? { notes } : {}),
         }
       })
 
@@ -165,6 +182,7 @@ export function SyncActivitiesButton({
       }
 
       setMatchPhase(null)
+      setFeedback({})
       router.refresh()
     } catch {
       setError("Confirm failed")
@@ -208,6 +226,26 @@ export function SyncActivitiesButton({
       next[activityId] = value
       return next
     })
+  }
+
+  function setActivityEffort(activityId: string, effort: string) {
+    setFeedback((prev) => ({
+      ...prev,
+      [activityId]: {
+        effort,
+        notes: prev[activityId]?.notes ?? "",
+      },
+    }))
+  }
+
+  function setActivityNotes(activityId: string, notes: string) {
+    setFeedback((prev) => ({
+      ...prev,
+      [activityId]: {
+        effort: prev[activityId]?.effort ?? "",
+        notes,
+      },
+    }))
   }
 
   const syncButton = (
@@ -258,6 +296,18 @@ export function SyncActivitiesButton({
               matchPhase.suggestions,
             )
             const selected = assignments[activity.id] ?? ""
+            const activityFeedback = feedback[activity.id] ?? {
+              effort: "",
+              notes: "",
+            }
+            const controlStyle = {
+              width: "100%",
+              padding: "8px 10px",
+              borderRadius: "6px",
+              border: "1px solid var(--chakra-colors-border)",
+              background: "transparent",
+              fontSize: "14px",
+            } as const
             return (
               <VStack key={activity.id} gap={1} align="stretch">
                 <Text fontSize="sm" fontWeight="medium">
@@ -269,14 +319,7 @@ export function SyncActivitiesButton({
                 <select
                   value={selected}
                   onChange={(e) => setAssignment(activity.id, e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "8px 10px",
-                    borderRadius: "6px",
-                    border: "1px solid var(--chakra-colors-border)",
-                    background: "transparent",
-                    fontSize: "14px",
-                  }}
+                  style={controlStyle}
                 >
                   <option value="">Not in plan</option>
                   {matchPhase.sessions.map((session) => {
@@ -299,6 +342,32 @@ export function SyncActivitiesButton({
                     {reason}
                   </Text>
                 ) : null}
+                <select
+                  value={activityFeedback.effort}
+                  onChange={(e) =>
+                    setActivityEffort(activity.id, e.target.value)
+                  }
+                  style={controlStyle}
+                  aria-label="How hard was this activity"
+                >
+                  <option value="">Effort (optional)</option>
+                  <option value="too_easy">Too easy</option>
+                  <option value="about_right">About right</option>
+                  <option value="too_hard">Too hard</option>
+                </select>
+                <textarea
+                  value={activityFeedback.notes}
+                  onChange={(e) =>
+                    setActivityNotes(activity.id, e.target.value)
+                  }
+                  placeholder="How did it feel?"
+                  rows={2}
+                  style={{
+                    ...controlStyle,
+                    resize: "vertical",
+                    fontFamily: "inherit",
+                  }}
+                />
               </VStack>
             )
           })}

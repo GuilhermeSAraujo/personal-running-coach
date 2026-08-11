@@ -1,4 +1,8 @@
 import mongoose, { Schema, type HydratedDocument, type Model, type Types } from "mongoose";
+import {
+  ATHLETE_EFFORTS,
+  type IAthleteFeedback,
+} from "./Activity";
 import { GOAL_TYPES, type GoalType } from "./shared";
 
 export const ATHLETE_SNAPSHOT_SCHEMA_VERSION = 1;
@@ -27,6 +31,7 @@ export interface ISnapshotActivity {
   averageHeartRate?: number;
   maxHeartRate?: number;
   sufferScore?: number;
+  athleteFeedback?: IAthleteFeedback;
 }
 
 export interface IEstimatedEffort {
@@ -137,6 +142,14 @@ const weeklyTrainingSchema = new Schema<IWeeklyTraining>(
   { _id: false },
 );
 
+const snapshotAthleteFeedbackSchema = new Schema<IAthleteFeedback>(
+  {
+    effort: { type: String, enum: ATHLETE_EFFORTS },
+    notes: { type: String },
+  },
+  { _id: false },
+);
+
 const snapshotActivitySchema = new Schema<ISnapshotActivity>(
   {
     date: { type: Date, required: true },
@@ -147,6 +160,7 @@ const snapshotActivitySchema = new Schema<ISnapshotActivity>(
     averageHeartRate: { type: Number },
     maxHeartRate: { type: Number },
     sufferScore: { type: Number },
+    athleteFeedback: { type: snapshotAthleteFeedbackSchema },
   },
   { _id: false },
 );

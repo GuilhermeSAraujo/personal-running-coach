@@ -7,7 +7,7 @@ import { buildAthleteSnapshot } from "./buildAthleteSnapshot";
 import type { SnapshotActivityInput } from "./types";
 
 const SNAPSHOT_SELECT =
-  "type startedAt distanceKm durationSeconds paceSecondsPerKm elevationGainMeters heartRate sufferScore" as const;
+  "type startedAt distanceKm durationSeconds paceSecondsPerKm elevationGainMeters heartRate sufferScore athleteFeedback" as const;
 
 export async function generateAthleteSnapshot(
   userId: Types.ObjectId,

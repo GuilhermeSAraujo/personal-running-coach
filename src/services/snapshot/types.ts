@@ -15,4 +15,5 @@ export type SnapshotActivityInput = Pick<
   | "elevationGainMeters"
   | "heartRate"
   | "sufferScore"
+  | "athleteFeedback"
 >;

@@ -8,6 +8,15 @@ import {
   type IHeartRate,
 } from "./shared";
 
+export const ATHLETE_EFFORTS = ["too_easy", "about_right", "too_hard"] as const;
+export type AthleteEffort = (typeof ATHLETE_EFFORTS)[number];
+export const ATHLETE_NOTES_MAX_LENGTH = 500;
+
+export interface IAthleteFeedback {
+  effort?: AthleteEffort;
+  notes?: string;
+}
+
 export interface IActivityTraining {
   estimatedZone?: string;
   intensity?: string;
@@ -27,6 +36,7 @@ export interface IActivity {
   sufferScore?: number;
   splits?: unknown[];
   training?: IActivityTraining;
+  athleteFeedback?: IAthleteFeedback;
   source: ActivitySource;
   raw?: unknown;
   createdAt: Date;
@@ -39,6 +49,14 @@ const activityTrainingSchema = new Schema<IActivityTraining>(
   {
     estimatedZone: { type: String },
     intensity: { type: String },
+  },
+  { _id: false },
+);
+
+const athleteFeedbackSchema = new Schema<IAthleteFeedback>(
+  {
+    effort: { type: String, enum: ATHLETE_EFFORTS },
+    notes: { type: String },
   },
   { _id: false },
 );
@@ -62,6 +80,7 @@ const ActivitySchema = new Schema<IActivity>(
     sufferScore: { type: Number },
     splits: { type: [Schema.Types.Mixed] },
     training: { type: activityTrainingSchema },
+    athleteFeedback: { type: athleteFeedbackSchema },
     source: {
       type: String,
       enum: ACTIVITY_SOURCES,
