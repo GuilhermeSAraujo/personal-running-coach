@@ -16,7 +16,7 @@ export async function generateAthleteSnapshot(
   await dbConnect();
 
   const user = await User.findById(userId)
-    .select("profile.birthDate profile.heightCm profile.weightKg goal")
+    .select("profile.birthDate profile.heightCm profile.weightKg goal trainingStyle")
     .lean();
 
   if (!user) {
@@ -33,6 +33,7 @@ export async function generateAthleteSnapshot(
       heightCm: user.profile?.heightCm,
       weightKg: user.profile?.weightKg,
       goal: user.goal,
+      trainingStyle: user.trainingStyle,
     },
     activities,
     now: new Date(),

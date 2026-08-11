@@ -37,9 +37,21 @@ Regras:
 - Se heartRateCoverage for baixo/incompleto, priorize percepção de esforço sobre zonas de FC.
 - Seja progressivo e seguro; não simule prova sem necessidade.
 - Use segments (warmup/work/rest/cooldown/steady) para treinos; rest days usam segments [].
-- Se houver um bloco de continuidade JSON: preserve em linhas gerais as remainingSessions (objetivo, tipo, estrutura, datas quando ainda caírem na janela); permita ajustes leves; use completedSessions só como contexto do que já foi feito; não reemitir treinos já completed como sessões do novo plano. Se remainingSessions tiverem ritmos irreais, corrija-os para respeitar os limites de ritmo.`;
+- Se houver um bloco de continuidade JSON: preserve em linhas gerais as remainingSessions (objetivo, tipo, estrutura, datas quando ainda caírem na janela); permita ajustes leves; use completedSessions só como contexto do que já foi feito; não reemitir treinos já completed como sessões do novo plano. Se remainingSessions tiverem ritmos irreais, corrija-os para respeitar os limites de ritmo.
+- Se houver um bloco "Estilo de treino / Preset": prefira os papéis de cada dia da semana (weekTemplate) e as regras de progressão; mapeie monday…sunday para as datas UTC da janela. Dias strength_or_rest / free → type "rest" (ou easy leve) com coachingNotes explicando força/livre. Ainda adapte por fadiga, feedback, continuidade e segurança — o preset é preferência suave, não trava rígida.
+- Se o estilo for adaptive (sem preset): você define a estrutura da semana com base no snapshot, histórico e feedback.`;
 
 export type SnapshotForAi = Omit<IAthleteSnapshot, "userId" | "createdAt">;
+
+function formatTrainingStyleForPrompt(snapshot: SnapshotForAi): string {
+  if (snapshot.trainingStyle === "preset" && snapshot.trainingPreset) {
+    return `Estilo de treino / Preset (JSON):\n${JSON.stringify(snapshot.trainingPreset)}`;
+  }
+  return (
+    "Estilo de treino: adaptive — sem template fixo de dias da semana; " +
+    "monte a estrutura da semana a partir do snapshot, histórico e feedback."
+  );
+}
 
 export async function generateNextSessions(input: {
   userId: Types.ObjectId;
@@ -58,6 +70,7 @@ export async function generateNextSessions(input: {
   const userText = [
     `Janela do plano (UTC): ${window.startDate} … ${window.endDate}`,
     `Snapshot do atleta (JSON):\n${JSON.stringify(input.snapshot)}`,
+    formatTrainingStyleForPrompt(input.snapshot),
     paceGuards ? formatPaceGuardsForPrompt(paceGuards) : null,
     continuity
       ? `Continuidade do plano anterior (JSON):\n${JSON.stringify(continuity)}`

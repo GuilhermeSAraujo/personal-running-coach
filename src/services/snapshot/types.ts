@@ -1,9 +1,13 @@
 import type { IActivity, IUserGoal, IUserProfile } from "@/models";
+import type { TrainingStyle } from "@/lib/trainingStyle";
 
 export type SnapshotUser = Pick<
   IUserProfile,
   "birthDate" | "heightCm" | "weightKg"
-> & { goal?: IUserGoal };
+> & {
+  goal?: IUserGoal;
+  trainingStyle?: TrainingStyle;
+};
 
 export type SnapshotActivityInput = Pick<
   IActivity,

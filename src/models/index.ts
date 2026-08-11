@@ -26,11 +26,13 @@ export {
 
 export {
   User,
+  TRAINING_STYLES,
   type IUser,
   type IUserCoaching,
   type IUserGoal,
   type IUserProfile,
   type IUserStrava,
+  type TrainingStyle,
   type UserDocument,
 } from "./User";
 

@@ -36,6 +36,8 @@ function testEmptyAthleteProducesZeroFilledSnapshot() {
   assert.deepEqual(snapshot.historicalPerformance.personalBests, {});
   assert.equal(snapshot.recentTraining.recentActivities.length, 0);
   assert.equal("goal" in snapshot, false);
+  assert.equal(snapshot.trainingStyle, "adaptive");
+  assert.equal("trainingPreset" in snapshot, false);
   assert.equal("ageYears" in snapshot.profile, false);
   assert.equal(snapshot.currentState.weeklyVolumeKm.average12w, 0);
   assert.equal(snapshot.currentState.trends.volume, "stable");
@@ -137,11 +139,81 @@ function testRecentActivityIncludesAthleteFeedbackWhenPresent() {
   );
 }
 
+function testLegacyMissingTrainingStyleDefaultsAdaptive() {
+  const snapshot = buildAthleteSnapshot({
+    user: {
+      goal: {
+        type: "10k",
+        distanceKm: 10,
+        targetTimeSeconds: 3600,
+        targetDate: new Date("2026-11-01T00:00:00.000Z"),
+      },
+    },
+    activities: [],
+    now: new Date("2026-07-01T12:00:00.000Z"),
+  });
+  assert.equal(snapshot.trainingStyle, "adaptive");
+  assert.equal("trainingPreset" in snapshot, false);
+}
+
+function testPresetEmbedsCatalogForGoal() {
+  const snapshot = buildAthleteSnapshot({
+    user: {
+      trainingStyle: "preset",
+      goal: {
+        type: "half_marathon",
+        distanceKm: 21.1,
+        targetTimeSeconds: 8100,
+        targetDate: new Date("2026-11-15T00:00:00.000Z"),
+      },
+    },
+    activities: [],
+    now: new Date("2026-07-01T12:00:00.000Z"),
+  });
+  assert.equal(snapshot.trainingStyle, "preset");
+  assert.ok(snapshot.trainingPreset);
+  assert.equal(snapshot.trainingPreset!.id, "half_marathon_time_long");
+  assert.equal(snapshot.trainingPreset!.goalType, "half_marathon");
+  assert.equal(snapshot.trainingPreset!.weekTemplate.sunday, "long_run");
+}
+
+function testAdaptiveOmitsTrainingPreset() {
+  const snapshot = buildAthleteSnapshot({
+    user: {
+      trainingStyle: "adaptive",
+      goal: {
+        type: "5k",
+        distanceKm: 5,
+        targetTimeSeconds: 1800,
+        targetDate: new Date("2026-10-01T00:00:00.000Z"),
+      },
+    },
+    activities: [],
+    now: new Date("2026-07-01T12:00:00.000Z"),
+  });
+  assert.equal(snapshot.trainingStyle, "adaptive");
+  assert.equal("trainingPreset" in snapshot, false);
+}
+
+function testPresetWithoutGoalOmitsTrainingPreset() {
+  const snapshot = buildAthleteSnapshot({
+    user: { trainingStyle: "preset" },
+    activities: [],
+    now: new Date("2026-07-01T12:00:00.000Z"),
+  });
+  assert.equal(snapshot.trainingStyle, "preset");
+  assert.equal("trainingPreset" in snapshot, false);
+}
+
 testEmptyAthleteProducesZeroFilledSnapshot();
 testMissingGoalOmitsGoalKey();
 testAgeYearsComputedFromBirthDate();
 testAgeYearsBeforeBirthdayThisYear();
 testGoalAndRecentTraining();
 testRecentActivityIncludesAthleteFeedbackWhenPresent();
+testLegacyMissingTrainingStyleDefaultsAdaptive();
+testPresetEmbedsCatalogForGoal();
+testAdaptiveOmitsTrainingPreset();
+testPresetWithoutGoalOmitsTrainingPreset();
 
 console.log("buildAthleteSnapshot tests passed");

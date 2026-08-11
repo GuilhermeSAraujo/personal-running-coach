@@ -2,6 +2,7 @@ import { auth } from "@/auth"
 import { NextResponse } from "next/server"
 import { dbConnect } from "@/lib/db"
 import { resolveGoalFields } from "@/lib/onboardingDefaults"
+import { isTrainingStyle } from "@/lib/trainingStyle"
 import { User } from "@/models"
 import { GOAL_TYPES, type GoalType } from "@/lib/goal"
 
@@ -19,6 +20,7 @@ type OnboardingBody = {
     targetTimeSeconds?: unknown
     targetDate?: unknown
   }
+  trainingStyle?: unknown
   profile?: ProfilePayload
 }
 
@@ -73,7 +75,16 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "goal.type is required" }, { status: 400 })
   }
 
+  if (!isTrainingStyle(body.trainingStyle)) {
+    return NextResponse.json(
+      { error: "trainingStyle is required (preset or adaptive)" },
+      { status: 400 },
+    )
+  }
+  const trainingStyle = body.trainingStyle
+
   const targetTimeSeconds = parseOptionalPositiveNumber(
+
     body.goal.targetTimeSeconds,
     "goal.targetTimeSeconds",
   )
@@ -119,7 +130,7 @@ export async function PATCH(request: Request) {
     targetDate: targetDate.value,
   })
 
-  const $set: Record<string, unknown> = { goal }
+  const $set: Record<string, unknown> = { goal, trainingStyle }
   if (heightCm.value != null) $set["profile.heightCm"] = heightCm.value
   if (weightKg.value != null) $set["profile.weightKg"] = weightKg.value
   if (current5kTime.value != null) $set["profile.current5kTime"] = current5kTime.value

@@ -1,5 +1,11 @@
 import mongoose, { Schema, type HydratedDocument, type Model, type Types } from "mongoose";
+import {
+  TRAINING_STYLES,
+  type TrainingStyle,
+} from "@/lib/trainingStyle";
 import { GOAL_TYPES, type GoalType } from "./shared";
+
+export { TRAINING_STYLES, type TrainingStyle };
 
 export interface IUserStrava {
   athleteId: number;
@@ -36,6 +42,8 @@ export interface IUser {
   strava: IUserStrava;
   profile: IUserProfile;
   goal?: IUserGoal;
+  /** Missing on legacy users — treat as adaptive at snapshot time. */
+  trainingStyle?: TrainingStyle;
   coaching: IUserCoaching;
   createdAt: Date;
   updatedAt: Date;
@@ -91,6 +99,7 @@ const UserSchema = new Schema<IUser>(
     strava: { type: userStravaSchema, required: true },
     profile: { type: userProfileSchema, required: true },
     goal: { type: userGoalSchema },
+    trainingStyle: { type: String, enum: TRAINING_STYLES },
     coaching: {
       type: userCoachingSchema,
       required: true,

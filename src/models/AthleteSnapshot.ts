@@ -4,6 +4,11 @@ import {
   type IAthleteFeedback,
 } from "./Activity";
 import { GOAL_TYPES, type GoalType } from "./shared";
+import {
+  TRAINING_STYLES,
+  type TrainingStyle,
+} from "@/lib/trainingStyle";
+import type { TrainingPreset } from "@/lib/trainingPresets";
 
 export const ATHLETE_SNAPSHOT_SCHEMA_VERSION = 1;
 
@@ -106,6 +111,9 @@ export interface IAthleteSnapshot {
   windowEnd: Date;
   profile: IAthleteSnapshotProfile;
   goal?: IAthleteSnapshotGoal;
+  trainingStyle: TrainingStyle;
+  /** Present when trainingStyle is preset and a goal is known. */
+  trainingPreset?: TrainingPreset;
   recentTraining: {
     weeks: IWeeklyTraining[];
     recentActivities: ISnapshotActivity[];
@@ -261,6 +269,27 @@ const snapshotGoalSchema = new Schema<IAthleteSnapshotGoal>(
   { _id: false },
 );
 
+const trainingPresetSchema = new Schema(
+  {
+    id: { type: String, required: true },
+    goalType: { type: String, enum: GOAL_TYPES, required: true },
+    name: { type: String, required: true },
+    summary: { type: String, required: true },
+    philosophy: { type: String, required: true },
+    weekTemplate: {
+      monday: { type: String, required: true },
+      tuesday: { type: String, required: true },
+      wednesday: { type: String, required: true },
+      thursday: { type: String, required: true },
+      friday: { type: String, required: true },
+      saturday: { type: String, required: true },
+      sunday: { type: String, required: true },
+    },
+    rules: { type: [String], required: true },
+  },
+  { _id: false },
+);
+
 const AthleteSnapshotSchema = new Schema<IAthleteSnapshot>(
   {
     userId: {
@@ -278,6 +307,13 @@ const AthleteSnapshotSchema = new Schema<IAthleteSnapshot>(
     windowEnd: { type: Date, required: true },
     profile: { type: snapshotProfileSchema, required: true },
     goal: { type: snapshotGoalSchema },
+    trainingStyle: {
+      type: String,
+      enum: TRAINING_STYLES,
+      required: true,
+      default: "adaptive",
+    },
+    trainingPreset: { type: trainingPresetSchema },
     recentTraining: {
       weeks: { type: [weeklyTrainingSchema], required: true },
       recentActivities: { type: [snapshotActivitySchema], required: true },

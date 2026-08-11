@@ -18,6 +18,8 @@ import {
   DEFAULT_TARGET_TIME_SECONDS,
   formatDurationLabel,
 } from "@/lib/onboardingDefaults"
+import { getTrainingPreset } from "@/lib/trainingPresets"
+import type { TrainingStyle } from "@/lib/trainingStyle"
 import {
   maskDurationRightAligned,
   maskMmSs,
@@ -63,8 +65,11 @@ function parseOptionalNumber(value: string): number | undefined {
 
 export function OnboardingModal({ open }: { open: boolean }) {
   const router = useRouter()
-  const [step, setStep] = useState<1 | 2>(1)
+  const [step, setStep] = useState<1 | 2 | 3>(1)
   const [goalType, setGoalType] = useState<GoalType | null>(null)
+  const [trainingStyle, setTrainingStyle] = useState<TrainingStyle | null>(
+    null,
+  )
   const [targetTime, setTargetTime] = useState("")
   const [targetDate, setTargetDate] = useState("")
   const [heightCm, setHeightCm] = useState("")
@@ -85,8 +90,27 @@ export function OnboardingModal({ open }: { open: boolean }) {
     }
   }, [goalType])
 
+  const preset = useMemo(
+    () => (goalType ? getTrainingPreset(goalType) : null),
+    [goalType],
+  )
+
+  const stepTitle =
+    step === 1
+      ? "What’s your goal?"
+      : step === 2
+        ? "How should we coach you?"
+        : "Tell us about you"
+
+  const stepDescription =
+    step === 1
+      ? "Pick a race distance. Time and date are optional — we’ll fill sensible amateur defaults if you skip them."
+      : step === 2
+        ? "Choose a structured weekly style for your goal, or let the coach adapt freely from your fitness and feedback."
+        : "All fields are optional. The more you share, the better we can personalize your plan."
+
   async function handleFinish() {
-    if (!goalType) return
+    if (!goalType || !trainingStyle) return
 
     const targetTimeSeconds = parseDurationToSeconds(targetTime)
     if (targetTime.trim() && targetTimeSeconds == null) {
@@ -142,11 +166,14 @@ export function OnboardingModal({ open }: { open: boolean }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           goal,
+          trainingStyle,
           profile: Object.keys(profile).length > 0 ? profile : undefined,
         }),
       })
       if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as { error?: string } | null
+        const data = (await res.json().catch(() => null)) as {
+          error?: string
+        } | null
         setError(data?.error ?? "Could not save onboarding")
         return
       }
@@ -181,16 +208,10 @@ export function OnboardingModal({ open }: { open: boolean }) {
             <Dialog.Header pb={2}>
               <VStack align="stretch" gap={1}>
                 <Text fontSize="sm" color="fg.muted">
-                  Step {step} of 2
+                  Step {step} of 3
                 </Text>
-                <Dialog.Title>
-                  {step === 1 ? "What’s your goal?" : "Tell us about you"}
-                </Dialog.Title>
-                <Dialog.Description>
-                  {step === 1
-                    ? "Pick a race distance. Time and date are optional — we’ll fill sensible amateur defaults if you skip them."
-                    : "All fields are optional. The more you share, the better we can personalize your plan."}
-                </Dialog.Description>
+                <Dialog.Title>{stepTitle}</Dialog.Title>
+                <Dialog.Description>{stepDescription}</Dialog.Description>
               </VStack>
             </Dialog.Header>
 
@@ -255,7 +276,60 @@ export function OnboardingModal({ open }: { open: boolean }) {
                     </Text>
                   ) : null}
                 </VStack>
-              ) : (
+              ) : null}
+
+              {step === 2 && preset ? (
+                <VStack align="stretch" gap={3}>
+                  <Button
+                    size="lg"
+                    height="auto"
+                    py={4}
+                    px={4}
+                    variant={trainingStyle === "preset" ? "solid" : "outline"}
+                    colorPalette="orange"
+                    onClick={() => setTrainingStyle("preset")}
+                    textAlign="left"
+                    whiteSpace="normal"
+                  >
+                    <VStack align="stretch" gap={1} width="full">
+                      <Text fontWeight="semibold">{preset.name}</Text>
+                      <Text
+                        fontSize="sm"
+                        fontWeight="normal"
+                        opacity={trainingStyle === "preset" ? 0.95 : 0.85}
+                      >
+                        {preset.summary}
+                      </Text>
+                    </VStack>
+                  </Button>
+
+                  <Button
+                    size="lg"
+                    height="auto"
+                    py={4}
+                    px={4}
+                    variant={trainingStyle === "adaptive" ? "solid" : "outline"}
+                    colorPalette="orange"
+                    onClick={() => setTrainingStyle("adaptive")}
+                    textAlign="left"
+                    whiteSpace="normal"
+                  >
+                    <VStack align="stretch" gap={1} width="full">
+                      <Text fontWeight="semibold">Adaptive to my needs</Text>
+                      <Text
+                        fontSize="sm"
+                        fontWeight="normal"
+                        opacity={trainingStyle === "adaptive" ? 0.95 : 0.85}
+                      >
+                        No fixed weekday template — the coach builds each week from
+                        your fitness, history, and feedback.
+                      </Text>
+                    </VStack>
+                  </Button>
+                </VStack>
+              ) : null}
+
+              {step === 3 ? (
                 <VStack align="stretch" gap={5}>
                   <Field.Root>
                     <Field.Label>Height (cm)</Field.Label>
@@ -327,7 +401,7 @@ export function OnboardingModal({ open }: { open: boolean }) {
                     </Field.HelperText>
                   </Field.Root>
                 </VStack>
-              )}
+              ) : null}
             </Dialog.Body>
 
             <Dialog.Footer
@@ -355,7 +429,35 @@ export function OnboardingModal({ open }: { open: boolean }) {
                 >
                   Next
                 </Button>
-              ) : (
+              ) : null}
+              {step === 2 ? (
+                <>
+                  <Button
+                    colorPalette="orange"
+                    size="lg"
+                    width="full"
+                    disabled={!trainingStyle}
+                    onClick={() => {
+                      setError(null)
+                      setStep(3)
+                    }}
+                  >
+                    Next
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    width="full"
+                    onClick={() => {
+                      setError(null)
+                      setStep(1)
+                    }}
+                  >
+                    Back
+                  </Button>
+                </>
+              ) : null}
+              {step === 3 ? (
                 <>
                   <Button
                     colorPalette="orange"
@@ -374,13 +476,13 @@ export function OnboardingModal({ open }: { open: boolean }) {
                     disabled={loading}
                     onClick={() => {
                       setError(null)
-                      setStep(1)
+                      setStep(2)
                     }}
                   >
                     Back
                   </Button>
                 </>
-              )}
+              ) : null}
             </Dialog.Footer>
           </Dialog.Content>
         </Dialog.Positioner>

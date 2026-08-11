@@ -4,6 +4,8 @@ import {
   type ISnapshotActivity,
 } from "@/models";
 import { GOAL_DISTANCE_KM } from "@/lib/goal";
+import { resolveTrainingPresetForSnapshot } from "@/lib/trainingPresets";
+import type { TrainingStyle } from "@/lib/trainingStyle";
 import { buildCurrentState } from "./currentState";
 import { estimateEfforts } from "./efforts";
 import type { SnapshotActivityInput, SnapshotUser } from "./types";
@@ -137,12 +139,15 @@ export function buildAthleteSnapshot(input: {
     firstActivityAt,
   });
 
+  const trainingStyle: TrainingStyle = user.trainingStyle ?? "adaptive";
+
   const snapshot: Omit<IAthleteSnapshot, "userId" | "createdAt"> = {
     schemaVersion: ATHLETE_SNAPSHOT_SCHEMA_VERSION,
     generatedAt: now,
     windowStart,
     windowEnd,
     profile,
+    trainingStyle,
     recentTraining: {
       weeks,
       recentActivities,
@@ -177,6 +182,10 @@ export function buildAthleteSnapshot(input: {
       targetDate: user.goal.targetDate,
       weeksUntilTarget,
     };
+  }
+
+  if (trainingStyle === "preset" && user.goal) {
+    snapshot.trainingPreset = resolveTrainingPresetForSnapshot(user.goal.type);
   }
 
   return snapshot;
