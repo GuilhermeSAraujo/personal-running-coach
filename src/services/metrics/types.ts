@@ -14,6 +14,7 @@ export type MetricsWeekPoint = {
   runs: number;
   longestRunKm: number;
   averagePaceSecondsPerKm: number | null;
+  isPreview: boolean;
 };
 
 export type MetricsDashboardEmpty = {
@@ -25,6 +26,7 @@ export type MetricsDashboardData = {
   generatedAt: string;
   kpis: MetricsKpis;
   weeks: MetricsWeekPoint[];
+  longRunGoalKm: number | null;
 };
 
 export type MetricsDashboard = MetricsDashboardEmpty | MetricsDashboardData;

@@ -4,7 +4,20 @@ import { formatDistanceKm } from "@/lib/activityFormat";
 import type { MetricsWeekPoint } from "@/services/metrics/types";
 import { Chart, useChart } from "@chakra-ui/charts";
 import { Card, Heading, Text, VStack } from "@chakra-ui/react";
-import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  PREVIEW_BAR_OPACITY,
+  PREVIEW_SUPPORTING_LINE,
+  previewTooltipLabel,
+} from "./chartPreview";
 
 type Props = { weeks: MetricsWeekPoint[] };
 
@@ -13,6 +26,7 @@ export function WeeklyVolumeChart({ weeks }: Props) {
     data: weeks.map((w) => ({
       label: w.label,
       distanceKm: w.distanceKm,
+      isPreview: w.isPreview,
     })),
     series: [{ name: "distanceKm", label: "Distance (km)", color: "orange.solid" }],
   });
@@ -22,7 +36,7 @@ export function WeeklyVolumeChart({ weeks }: Props) {
       <Card.Header>
         <Heading size="sm">Weekly volume</Heading>
         <Text fontSize="xs" color="fg.muted">
-          Distance per week (km)
+          Distance per week (km). {PREVIEW_SUPPORTING_LINE}
         </Text>
       </Card.Header>
       <Card.Body>
@@ -45,6 +59,7 @@ export function WeeklyVolumeChart({ weeks }: Props) {
               <Tooltip
                 content={
                   <Chart.Tooltip
+                    labelFormatter={previewTooltipLabel}
                     formatter={(value) =>
                       value == null || !Number.isFinite(Number(value))
                         ? "—"
@@ -59,7 +74,15 @@ export function WeeklyVolumeChart({ weeks }: Props) {
                   dataKey={chart.key(item.name)}
                   fill={chart.color(item.color)}
                   radius={[4, 4, 0, 0]}
-                />
+                >
+                  {weeks.map((week) => (
+                    <Cell
+                      key={week.weekStart}
+                      fill={chart.color(item.color)}
+                      fillOpacity={week.isPreview ? PREVIEW_BAR_OPACITY : 1}
+                    />
+                  ))}
+                </Bar>
               ))}
             </BarChart>
           </Chart.Root>

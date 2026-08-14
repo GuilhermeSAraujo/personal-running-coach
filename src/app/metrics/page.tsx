@@ -76,7 +76,7 @@ export default async function MetricsPage() {
         <VStack gap={1} align="stretch">
           <Heading size="md">Training metrics</Heading>
           <Text fontSize="sm" color="fg.muted">
-            Last 12 weeks from your latest snapshot
+            Last 12 completed weeks + this week (in progress)
           </Text>
           {dashboard && !dashboard.empty ? (
             <Text fontSize="xs" color="fg.muted">
@@ -98,7 +98,10 @@ export default async function MetricsPage() {
             <MetricsKpiStrip kpis={dashboard.kpis} />
             <WeeklyVolumeChart weeks={dashboard.weeks} />
             <ConsistencyChart weeks={dashboard.weeks} />
-            <LongRunChart weeks={dashboard.weeks} />
+            <LongRunChart
+              weeks={dashboard.weeks}
+              goalKm={dashboard.longRunGoalKm}
+            />
             <PaceTrendChart weeks={dashboard.weeks} />
           </VStack>
         ) : null}

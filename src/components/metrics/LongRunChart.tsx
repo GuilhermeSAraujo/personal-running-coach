@@ -8,21 +8,28 @@ import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceLine,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  GOAL_LINE_DASHARRAY,
+  PREVIEW_SUPPORTING_LINE,
+  filterPreviewTooltipPayload,
+  previewTooltipLabel,
+  withPreviewLineSeries,
+  yDomainIncludingGoal,
+} from "./chartPreview";
 
-type Props = { weeks: MetricsWeekPoint[] };
+type Props = { weeks: MetricsWeekPoint[]; goalKm: number | null };
 
-export function LongRunChart({ weeks }: Props) {
+export function LongRunChart({ weeks, goalKm }: Props) {
   const chart = useChart({
-    data: weeks.map((w) => ({
-      label: w.label,
-      longestRunKm: w.longestRunKm,
-    })),
+    data: withPreviewLineSeries(weeks, (w) => w.longestRunKm),
     series: [
-      { name: "longestRunKm", label: "Longest (km)", color: "teal.solid" },
+      { name: "value", label: "Longest (km)", color: "teal.solid" },
+      { name: "preview", label: "Longest (km)", color: "teal.solid" },
     ],
   });
 
@@ -31,7 +38,9 @@ export function LongRunChart({ weeks }: Props) {
       <Card.Header>
         <Heading size="sm">Long run</Heading>
         <Text fontSize="xs" color="fg.muted">
-          Longest run each week (km)
+          Longest run each week (km).
+          {goalKm != null ? ` Goal: ${formatDistanceKm(goalKm)}.` : ""}{" "}
+          {PREVIEW_SUPPORTING_LINE}
         </Text>
       </Card.Header>
       <Card.Body>
@@ -50,28 +59,48 @@ export function LongRunChart({ weeks }: Props) {
                 axisLine={false}
                 tick={{ fontSize: 11 }}
                 width={36}
+                domain={
+                  goalKm != null ? yDomainIncludingGoal(goalKm) : undefined
+                }
               />
+              {goalKm != null ? (
+                <ReferenceLine
+                  y={goalKm}
+                  stroke={chart.color("fg.muted")}
+                  strokeDasharray={GOAL_LINE_DASHARRAY}
+                />
+              ) : null}
               <Tooltip
-                content={
+                content={({ payload, label }) => (
                   <Chart.Tooltip
+                    payload={filterPreviewTooltipPayload(payload)}
+                    label={label}
+                    labelFormatter={previewTooltipLabel}
                     formatter={(value) =>
                       value == null || !Number.isFinite(Number(value))
                         ? "—"
                         : formatDistanceKm(Number(value))
                     }
                   />
-                }
+                )}
               />
-              {chart.series.map((item) => (
-                <Line
-                  key={item.name}
-                  type="monotone"
-                  dataKey={chart.key(item.name)}
-                  stroke={chart.color(item.color)}
-                  strokeWidth={2}
-                  dot={false}
-                />
-              ))}
+              <Line
+                type="monotone"
+                dataKey={chart.key("value")}
+                stroke={chart.color("teal.solid")}
+                strokeWidth={2}
+                dot={false}
+                connectNulls={false}
+              />
+              <Line
+                type="monotone"
+                dataKey={chart.key("preview")}
+                stroke={chart.color("teal.solid")}
+                strokeWidth={2}
+                strokeDasharray="4 4"
+                dot={false}
+                connectNulls={false}
+              />
             </LineChart>
           </Chart.Root>
         </VStack>

@@ -12,21 +12,21 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  PREVIEW_SUPPORTING_LINE,
+  filterPreviewTooltipPayload,
+  previewTooltipLabel,
+  withPreviewLineSeries,
+} from "./chartPreview";
 
 type Props = { weeks: MetricsWeekPoint[] };
 
 export function PaceTrendChart({ weeks }: Props) {
   const chart = useChart({
-    data: weeks.map((w) => ({
-      label: w.label,
-      averagePaceSecondsPerKm: w.averagePaceSecondsPerKm,
-    })),
+    data: withPreviewLineSeries(weeks, (w) => w.averagePaceSecondsPerKm),
     series: [
-      {
-        name: "averagePaceSecondsPerKm",
-        label: "Avg pace",
-        color: "purple.solid",
-      },
+      { name: "value", label: "Avg pace", color: "purple.solid" },
+      { name: "preview", label: "Avg pace", color: "purple.solid" },
     ],
   });
 
@@ -35,7 +35,7 @@ export function PaceTrendChart({ weeks }: Props) {
       <Card.Header>
         <Heading size="sm">Pace trend</Heading>
         <Text fontSize="xs" color="fg.muted">
-          Average pace (faster is higher)
+          Average pace (faster is higher). {PREVIEW_SUPPORTING_LINE}
         </Text>
       </Card.Header>
       <Card.Body>
@@ -62,27 +62,36 @@ export function PaceTrendChart({ weeks }: Props) {
                 }
               />
               <Tooltip
-                content={
+                content={({ payload, label }) => (
                   <Chart.Tooltip
+                    payload={filterPreviewTooltipPayload(payload)}
+                    label={label}
+                    labelFormatter={previewTooltipLabel}
                     formatter={(value) =>
                       value == null || !Number.isFinite(Number(value))
                         ? "—"
                         : formatPace(Number(value))
                     }
                   />
-                }
+                )}
               />
-              {chart.series.map((item) => (
-                <Line
-                  key={item.name}
-                  type="monotone"
-                  dataKey={chart.key(item.name)}
-                  stroke={chart.color(item.color)}
-                  strokeWidth={2}
-                  dot={false}
-                  connectNulls={false}
-                />
-              ))}
+              <Line
+                type="monotone"
+                dataKey={chart.key("value")}
+                stroke={chart.color("purple.solid")}
+                strokeWidth={2}
+                dot={false}
+                connectNulls={false}
+              />
+              <Line
+                type="monotone"
+                dataKey={chart.key("preview")}
+                stroke={chart.color("purple.solid")}
+                strokeWidth={2}
+                strokeDasharray="4 4"
+                dot={false}
+                connectNulls={false}
+              />
             </LineChart>
           </Chart.Root>
         </VStack>

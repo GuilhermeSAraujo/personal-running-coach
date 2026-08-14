@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import type { SnapshotActivityInput } from "./types";
 import {
   bucketCompletedWeeks,
+  bucketWeek,
   currentWeekDistanceKm,
   startOfWeekMondayUtc,
 } from "./weeks";
@@ -107,6 +108,38 @@ function testCurrentWeekDistance() {
   assert.equal(currentWeekDistanceKm(activities, windowEnd, now), 7);
 }
 
+function testBucketWeekCurrentWeekIncludesInProgressRun() {
+  const now = new Date("2026-07-01T12:00:00.000Z");
+  const weekStart = new Date("2026-06-29T00:00:00.000Z");
+  const activities = [
+    run({
+      startedAt: new Date("2026-06-30T10:00:00.000Z"),
+      distanceKm: 10,
+      durationSeconds: 3600,
+    }),
+    run({ startedAt: new Date("2026-06-24T10:00:00.000Z"), distanceKm: 8 }),
+    walk({ startedAt: new Date("2026-06-30T18:00:00.000Z"), distanceKm: 2 }),
+  ];
+  const week = bucketWeek(activities, weekStart, now);
+  assert.equal(week.weekStart.toISOString(), weekStart.toISOString());
+  assert.equal(week.distanceKm, 10);
+  assert.equal(week.runs, 1);
+  assert.equal(week.longestRunKm, 10);
+  assert.equal(week.averagePaceSecondsPerKm, 360);
+  assert.equal(week.walkCount, 1);
+  assert.equal(week.walkDistanceKm, 2);
+}
+
+function testBucketWeekEmptyIsZeroFilled() {
+  const now = new Date("2026-07-01T12:00:00.000Z");
+  const weekStart = new Date("2026-06-29T00:00:00.000Z");
+  const week = bucketWeek([], weekStart, now);
+  assert.equal(week.runs, 0);
+  assert.equal(week.distanceKm, 0);
+  assert.equal(week.longestRunKm, 0);
+  assert.equal("averagePaceSecondsPerKm" in week, false);
+}
+
 function testMondayBoundaryActivityLandsInCorrectWeek() {
   const now = new Date("2026-07-01T12:00:00.000Z");
   // Monday 2026-06-22 00:00 UTC is start of last completed week
@@ -200,6 +233,8 @@ testExactly12CompletedWeeksExcludingCurrent();
 testEmptyWeeksZeroFilled();
 testInProgressWeekExcludedFromWeeks();
 testCurrentWeekDistance();
+testBucketWeekCurrentWeekIncludesInProgressRun();
+testBucketWeekEmptyIsZeroFilled();
 testMondayBoundaryActivityLandsInCorrectWeek();
 testDistanceWeightedPace();
 testDurationWeightedHrIgnoresRunsWithoutHr();
