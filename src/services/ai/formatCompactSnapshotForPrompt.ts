@@ -281,7 +281,7 @@ export function formatCompactSnapshotForPrompt(
   snapshot: CompactSnapshotInput,
   paceGuards: PaceGuardrails | null,
 ): string {
-  const parts: string[] = [
+  const parts: Array<string | null> = [
     formatAthlete(snapshot),
     formatGoal(snapshot),
     formatCurrentState(snapshot),
