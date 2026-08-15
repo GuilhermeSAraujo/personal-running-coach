@@ -70,6 +70,7 @@ export default async function MetricsPage() {
       <VStack gap={6} align="stretch">
         <AppNav
           userName={session.user?.name}
+          userImage={session.user?.image}
           signOutAction={signOutAction}
         />
 

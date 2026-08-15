@@ -12,7 +12,7 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react"
-import { GOAL_TYPES, type GoalType } from "@/lib/goal"
+import { GOAL_LABELS, GOAL_TYPES, type GoalType } from "@/lib/goal"
 import {
   DEFAULT_PREP_MONTHS,
   DEFAULT_TARGET_TIME_SECONDS,
@@ -24,13 +24,6 @@ import {
   maskDurationRightAligned,
   maskMmSs,
 } from "@/lib/timeInputMask"
-
-const GOAL_LABELS: Record<GoalType, string> = {
-  "5k": "5K",
-  "10k": "10K",
-  half_marathon: "Half marathon",
-  marathon: "Marathon",
-}
 
 function parseDurationToSeconds(value: string): number | undefined {
   const trimmed = value.trim()

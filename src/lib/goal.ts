@@ -12,3 +12,10 @@ export const GOAL_DISTANCE_KM: Record<GoalType, number> = {
   half_marathon: 21.1,
   marathon: 42.195,
 }
+
+export const GOAL_LABELS: Record<GoalType, string> = {
+  "5k": "5K",
+  "10k": "10K",
+  half_marathon: "Half marathon",
+  marathon: "Marathon",
+}

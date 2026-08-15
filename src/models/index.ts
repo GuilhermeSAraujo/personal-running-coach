@@ -96,3 +96,10 @@ export {
   type SessionPlanDocument,
   type SessionPlanStatus,
 } from "./SessionPlan";
+
+export {
+  DAILY_COACH_MESSAGE_SCHEMA_VERSION,
+  DailyCoachMessage,
+  type DailyCoachMessageDocument,
+  type IDailyCoachMessage,
+} from "./DailyCoachMessage";

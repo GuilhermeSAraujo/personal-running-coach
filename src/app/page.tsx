@@ -2,6 +2,7 @@ import { auth, signIn, signOut } from "@/auth"
 import Link from "next/link"
 import { ActivityHighlights } from "@/components/ActivityHighlights"
 import { AppNav } from "@/components/AppNav"
+import { DailyCoachMessage } from "@/components/DailyCoachMessage"
 import { OnboardingModal } from "@/components/OnboardingModal"
 import { ProgressHistory } from "@/components/progress/ProgressHistory"
 import { ProgressThisWeek } from "@/components/progress/ProgressThisWeek"
@@ -69,8 +70,11 @@ export default async function HomePage() {
           <VStack gap={8} align="stretch">
             <AppNav
               userName={session.user?.name}
+              userImage={session.user?.image}
               signOutAction={signOutAction}
             />
+
+            {!needsOnboarding ? <DailyCoachMessage /> : null}
 
             <VStack gap={2} align="stretch">
               <Heading size="md">Progress</Heading>
