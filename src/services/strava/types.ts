@@ -9,6 +9,7 @@ export interface StravaSummaryActivity {
   average_heartrate?: number;
   max_heartrate?: number;
   suffer_score?: number | null;
+  start_latlng?: [number, number] | null;
 }
 
 export interface StravaTokenResponse {

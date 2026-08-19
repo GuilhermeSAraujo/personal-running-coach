@@ -11,6 +11,14 @@ import type {
   SyncActivitySummary,
   SyncOpenSessionSummary,
 } from "@/services/matching/types";
+import {
+  geocodeMissingStartNeighborhoods,
+  loadExistingStartNeighborhoods,
+} from "@/services/geo/enrichStartNeighborhood";
+import {
+  mergeStartNeighborhood,
+  shouldGeocodeDuringSync,
+} from "@/services/geo/startNeighborhood";
 import { backfillSufferScoreFromRaw } from "./backfillSufferScore";
 import { ensureUserAccessToken, listAthleteActivities } from "./client";
 import { isRunOrWalk, mapSummaryToActivity } from "./mapActivity";
@@ -116,14 +124,21 @@ export async function syncActivitiesForAthlete(
 
     fetched += activities.length;
 
-    const ops = [];
-    for (const activity of activities) {
-      if (!isRunOrWalk(activity)) {
-        skipped += 1;
-        continue;
-      }
+    const runOrWalk = activities.filter(isRunOrWalk);
+    skipped += activities.length - runOrWalk.length;
 
+    const preserved = await loadExistingStartNeighborhoods(
+      user._id,
+      runOrWalk.map((activity) => activity.id),
+    );
+
+    const ops = [];
+    for (const activity of runOrWalk) {
       const mapped = mapSummaryToActivity(user._id, activity);
+      const existingNeighborhood = preserved.get(mapped.stravaActivityId);
+      if (existingNeighborhood) {
+        mapped.raw = mergeStartNeighborhood(mapped.raw, existingNeighborhood);
+      }
       syncedStravaIds.push(mapped.stravaActivityId);
       ops.push({
         updateOne: {
@@ -143,6 +158,10 @@ export async function syncActivitiesForAthlete(
     }
 
     page += 1;
+  }
+
+  if (shouldGeocodeDuringSync(upserted)) {
+    await geocodeMissingStartNeighborhoods(user._id, syncedStravaIds);
   }
 
   const openPlan = await findOpenSessionPlan(user._id);

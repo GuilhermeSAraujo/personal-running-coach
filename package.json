@@ -6,7 +6,8 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "backfill:start-neighborhood": "npx tsx --env-file=.env scripts/backfill-start-neighborhood.ts"
   },
   "dependencies": {
     "@chakra-ui/charts": "^3.36.1",

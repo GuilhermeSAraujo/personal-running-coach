@@ -36,8 +36,15 @@ Matching stores the link on the **plan side** (`sessions[].activityId`). Activit
    - **First sync** (no local activities yet): full history (paginated).
    - **Later syncs**: only activities after the newest local `startedAt`.
 4. Keep run/walk only; **upsert** into `activities` on `{ userId, stravaActivityId }`.
+5. Best-effort reverse-geocode of `raw.start_latlng` via Nominatim into `raw.start_neighborhood` (e.g. `"Belvedere"`). Failures are ignored and never fail the import. Existing `raw.start_neighborhood` values are copied onto the new Strava `raw` payload so a re-sync does not wipe them. If more than 10 activities were upserted (typical first full-history sync), Nominatim is skipped in-request; backfill those with `npm run backfill:start-neighborhood`.
 
-Activity fields written come from the Strava summary mapper (distance, duration, pace, HR, etc.). This is the only time sync mutates activity documents.
+Activity fields written come from the Strava summary mapper (distance, duration, pace, HR, etc.). This is the only time sync mutates activity documents. A local script can also backfill `raw.start_neighborhood` for existing docs:
+
+```bash
+npm run backfill:start-neighborhood
+```
+
+That command loads `.env`, finds activities that have `raw.start_latlng` but no `raw.start_neighborhood`, and calls Nominatim with a random 1100–2000 ms delay between requests.
 
 ### Then branch
 
