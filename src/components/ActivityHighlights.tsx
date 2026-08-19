@@ -5,8 +5,10 @@ import {
   formatDuration,
   formatPace,
 } from "@/lib/activityFormat";
+import { DeleteLastActivityButton } from "@/components/DeleteLastActivityButton";
 import type { ActivityHighlights, ActivitySummary } from "@/services/activities/highlights";
-import { Card, Text, VStack } from "@chakra-ui/react";
+import { Card, HStack, Text, VStack } from "@chakra-ui/react";
+import type { ReactNode } from "react";
 
 type Props = {
   highlights: ActivityHighlights;
@@ -29,32 +31,37 @@ function HighlightRow({
   activity,
   primary,
   secondary,
+  action,
 }: {
   label: string;
   activity: ActivitySummary | null;
   primary: (a: ActivitySummary) => string;
   secondary: (a: ActivitySummary) => string;
+  action?: ReactNode;
 }) {
   return (
-    <VStack gap={0} align="stretch">
-      <Text fontSize="xs" color="fg.muted" fontWeight="medium">
-        {label}
-      </Text>
-      {activity ? (
-        <>
-          <Text fontSize="sm" fontWeight="semibold">
-            {primary(activity)}
-          </Text>
-          <Text fontSize="xs" color="fg.muted">
-            {secondary(activity)}
-          </Text>
-        </>
-      ) : (
-        <Text fontSize="sm" color="fg.muted">
-          —
+    <HStack justify="space-between" align="start" gap={2}>
+      <VStack gap={0} align="stretch" flex="1">
+        <Text fontSize="xs" color="fg.muted" fontWeight="medium">
+          {label}
         </Text>
-      )}
-    </VStack>
+        {activity ? (
+          <>
+            <Text fontSize="sm" fontWeight="semibold">
+              {primary(activity)}
+            </Text>
+            <Text fontSize="xs" color="fg.muted">
+              {secondary(activity)}
+            </Text>
+          </>
+        ) : (
+          <Text fontSize="sm" color="fg.muted">
+            —
+          </Text>
+        )}
+      </VStack>
+      {action}
+    </HStack>
   );
 }
 
@@ -91,6 +98,7 @@ export function ActivityHighlights({ highlights }: Props) {
               `${formatDistanceKm(a.distanceKm)} · ${formatActivityType(a.type)}`
             }
             secondary={secondaryLast}
+            action={last ? <DeleteLastActivityButton /> : null}
           />
           <HighlightRow
             label="Longest"

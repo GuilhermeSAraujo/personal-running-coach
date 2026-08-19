@@ -7,6 +7,7 @@ Primary code:
 - Phase 1: [`src/services/strava/syncActivities.ts`](../src/services/strava/syncActivities.ts) via `POST /api/activities/sync`
 - Phase 2: [`src/services/matching/confirmMatches.ts`](../src/services/matching/confirmMatches.ts) via `POST /api/session-plans/confirm-matches`
 - Regen retry: `POST /api/session-plans/regenerate`
+- Undo last activity: `DELETE /api/activities/last`
 
 ---
 
@@ -156,6 +157,24 @@ User taps Sync
   → create AthleteSnapshot + SessionPlan
   → no matching UI
 ```
+
+---
+
+## Undo last activity (`DELETE /api/activities/last`)
+
+Home’s Recent activity card can delete the newest activity (`startedAt`) and roll coaching back to the state before that import.
+
+Writes, for the signed-in user:
+
+1. Delete the last `Activity`.
+2. Delete every `AthleteSnapshot` and `SessionPlan` with `createdAt >=` that activity’s `createdAt` (confirm regen, later regen retries). Skip matching does not create those docs, so the current snapshot/plan stay.
+3. On remaining plans, any session linked to the deleted activity is set back to `status: "open"` with `activityId` / `matchedAt` cleared.
+4. Newest remaining `SessionPlan` is set to `status: "open"` (no-op if already open, or if none remain).
+5. Delete today’s `DailyCoachMessage` (UTC date). The home coach card then regenerates on the next GET.
+
+The next **Sync** will re-fetch the Strava activity because incremental sync uses `after` the newest remaining `startedAt`.
+
+If one sync upserted several activities, this still deletes **only** the newest by `startedAt`. Post-confirm snapshot/plan still go away if they were created after that activity.
 
 ---
 

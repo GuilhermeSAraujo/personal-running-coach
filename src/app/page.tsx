@@ -74,7 +74,9 @@ export default async function HomePage() {
               signOutAction={signOutAction}
             />
 
-            {!needsOnboarding ? <DailyCoachMessage /> : null}
+            {!needsOnboarding ? (
+              <DailyCoachMessage key={highlights?.last?.id ?? "no-activity"} />
+            ) : null}
 
             <VStack gap={2} align="stretch">
               <Heading size="md">Progress</Heading>
