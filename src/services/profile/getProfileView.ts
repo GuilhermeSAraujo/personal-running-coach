@@ -11,17 +11,11 @@ import {
 } from "@/lib/trainingPresets";
 import type { TrainingStyle } from "@/lib/trainingStyle";
 import { dbConnect } from "@/lib/db";
-import {
-  TrainingPlan,
-  User,
-  type TrainingPlanStatus,
-} from "@/models";
+import { User } from "@/models";
 import type { Types } from "mongoose";
 import type {
   ProfileAthleteField,
-  ProfileCurrentPlanView,
   ProfileGoalView,
-  ProfilePlanInput,
   ProfilePresetView,
   ProfileUserInput,
   ProfileView,
@@ -61,12 +55,6 @@ const ROLE_LABELS: Record<WeekdayRole, string> = {
   easy_or_rest: "Easy or rest",
   rest_or_easy: "Rest or easy",
   free: "Free",
-};
-
-const PLAN_STATUS_LABELS: Record<TrainingPlanStatus, string> = {
-  active: "Active",
-  completed: "Completed",
-  cancelled: "Cancelled",
 };
 
 function ageYearsAt(birthDate: Date, now: Date): number {
@@ -153,25 +141,8 @@ function mapAthlete(
   return fields;
 }
 
-function mapCurrentPlan(
-  currentPlan?: ProfilePlanInput | null,
-): ProfileCurrentPlanView | null {
-  if (!currentPlan) return null;
-  const startDate = currentPlan.startDate.toISOString();
-  const endDate = currentPlan.endDate.toISOString();
-  return {
-    objective: currentPlan.objective,
-    status: currentPlan.status,
-    statusLabel: PLAN_STATUS_LABELS[currentPlan.status],
-    startDate,
-    startDateLabel: formatActivityDate(startDate),
-    endDate,
-    endDateLabel: formatActivityDate(endDate),
-  };
-}
-
 export function mapUserToProfileView(
-  input: { user: ProfileUserInput; currentPlan?: ProfilePlanInput | null },
+  input: { user: ProfileUserInput },
   now: Date = new Date(),
 ): ProfileView {
   const style: TrainingStyle = input.user.trainingStyle ?? "adaptive";
@@ -188,14 +159,11 @@ export function mapUserToProfileView(
       preset: mapPreset(input.user),
     },
     athlete: { fields: mapAthlete(input.user, now) },
-    currentPlan: mapCurrentPlan(input.currentPlan),
   };
 }
 
 const USER_PROFILE_SELECT =
-  "profile goal trainingStyle coaching.currentTrainingPlanId createdAt" as const;
-
-const PLAN_PROFILE_SELECT = "objective status startDate endDate" as const;
+  "profile goal trainingStyle createdAt" as const;
 
 export async function getProfileView(
   userId: Types.ObjectId | string,
@@ -204,17 +172,8 @@ export async function getProfileView(
   await dbConnect();
   const user = await User.findById(userId)
     .select(USER_PROFILE_SELECT)
-    .lean<ProfileUserInput & { coaching?: { currentTrainingPlanId?: Types.ObjectId } } | null>();
+    .lean<ProfileUserInput | null>();
   if (!user) return null;
 
-  let currentPlan: ProfilePlanInput | null = null;
-  const planId = user.coaching?.currentTrainingPlanId;
-  if (planId) {
-    const plan = await TrainingPlan.findById(planId)
-      .select(PLAN_PROFILE_SELECT)
-      .lean<ProfilePlanInput | null>();
-    if (plan) currentPlan = plan;
-  }
-
-  return mapUserToProfileView({ user, currentPlan }, now);
+  return mapUserToProfileView({ user }, now);
 }

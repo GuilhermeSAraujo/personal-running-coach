@@ -1,7 +1,6 @@
 import { auth, signOut } from "@/auth";
 import { AppNav } from "@/components/AppNav";
 import { ProfileAthleteCard } from "@/components/profile/ProfileAthleteCard";
-import { ProfileCurrentPlanCard } from "@/components/profile/ProfileCurrentPlanCard";
 import { ProfileGoalCard } from "@/components/profile/ProfileGoalCard";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ProfileTrainingMethodCard } from "@/components/profile/ProfileTrainingMethodCard";
@@ -50,9 +49,6 @@ export default async function ProfilePage() {
         <ProfileGoalCard goal={profile.goal} />
         <ProfileTrainingMethodCard trainingMethod={profile.trainingMethod} />
         <ProfileAthleteCard athlete={profile.athlete} />
-        {profile.currentPlan ? (
-          <ProfileCurrentPlanCard plan={profile.currentPlan} />
-        ) : null}
       </VStack>
     </Container>
   );

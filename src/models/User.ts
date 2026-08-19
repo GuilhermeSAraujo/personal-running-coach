@@ -1,4 +1,4 @@
-import mongoose, { Schema, type HydratedDocument, type Model, type Types } from "mongoose";
+import mongoose, { Schema, type HydratedDocument, type Model } from "mongoose";
 import {
   TRAINING_STYLES,
   type TrainingStyle,
@@ -31,20 +31,12 @@ export interface IUserGoal {
   targetDate: Date;
 }
 
-export interface IUserCoaching {
-  activitiesSinceLastEvaluation: number;
-  evaluationActivityThreshold: number;
-  currentEvaluationId?: Types.ObjectId;
-  currentTrainingPlanId?: Types.ObjectId;
-}
-
 export interface IUser {
   strava: IUserStrava;
   profile: IUserProfile;
   goal?: IUserGoal;
   /** Missing on legacy users — treat as adaptive at snapshot time. */
   trainingStyle?: TrainingStyle;
-  coaching: IUserCoaching;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -84,27 +76,12 @@ const userGoalSchema = new Schema<IUserGoal>(
   { _id: false },
 );
 
-const userCoachingSchema = new Schema<IUserCoaching>(
-  {
-    activitiesSinceLastEvaluation: { type: Number, required: true, default: 0 },
-    evaluationActivityThreshold: { type: Number, required: true, default: 3 },
-    currentEvaluationId: { type: Schema.Types.ObjectId, ref: "Evaluation" },
-    currentTrainingPlanId: { type: Schema.Types.ObjectId, ref: "TrainingPlan" },
-  },
-  { _id: false },
-);
-
 const UserSchema = new Schema<IUser>(
   {
     strava: { type: userStravaSchema, required: true },
     profile: { type: userProfileSchema, required: true },
     goal: { type: userGoalSchema },
     trainingStyle: { type: String, enum: TRAINING_STYLES },
-    coaching: {
-      type: userCoachingSchema,
-      required: true,
-      default: () => ({}),
-    },
   },
   {
     timestamps: true,

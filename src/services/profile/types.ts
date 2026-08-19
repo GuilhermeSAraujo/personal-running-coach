@@ -1,7 +1,6 @@
 import type { GoalType } from "@/lib/goal";
 import type { WeekdayKey, WeekdayRole } from "@/lib/trainingPresets";
 import type { TrainingStyle } from "@/lib/trainingStyle";
-import type { TrainingPlanStatus } from "@/models";
 
 export type ProfileGoalView = {
   type: GoalType;
@@ -45,16 +44,6 @@ export type ProfileAthleteView = {
   fields: ProfileAthleteField[];
 };
 
-export type ProfileCurrentPlanView = {
-  objective: string;
-  status: TrainingPlanStatus;
-  statusLabel: string;
-  startDate: string;
-  startDateLabel: string;
-  endDate: string;
-  endDateLabel: string;
-};
-
 export type ProfileView = {
   name: string;
   email: string;
@@ -63,7 +52,6 @@ export type ProfileView = {
   goal: ProfileGoalView | null;
   trainingMethod: ProfileTrainingMethodView;
   athlete: ProfileAthleteView;
-  currentPlan: ProfileCurrentPlanView | null;
 };
 
 export type ProfileUserInput = {
@@ -88,11 +76,4 @@ export type ProfileUserInput = {
     accessToken?: string;
     refreshToken?: string;
   };
-};
-
-export type ProfilePlanInput = {
-  objective: string;
-  status: TrainingPlanStatus;
-  startDate: Date;
-  endDate: Date;
 };

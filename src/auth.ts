@@ -57,7 +57,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           },
           $setOnInsert: {
             "strava.athleteId": athleteId,
-            coaching: {},
           },
         },
         { upsert: true },

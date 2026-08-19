@@ -1,5 +1,7 @@
 # AI Running Coach — Data Model & Architecture
 
+> **Status (2026-08-18):** Collections `evaluations`, `training_plans`, and `workouts` were designed here but never created, updated, or read in application code. Live coaching uses `AthleteSnapshot` and `SessionPlan` instead. This document is historical.
+
 ## 1. Product concept
 
 The application should be modeled as an **AI running coach**, not simply as "Strava activities + summaries".

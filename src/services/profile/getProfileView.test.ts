@@ -67,7 +67,7 @@ function testMapsPresetGoalAndWeekTemplate() {
   assert.equal(week[6]?.role, "long_run");
   assert.equal(week[6]?.roleLabel, "Long run");
 
-  assert.equal(view.currentPlan, null);
+  assert.equal("currentPlan" in view, false);
 }
 
 function testTreatsMissingStyleAsAdaptive() {
@@ -147,29 +147,9 @@ function testMapsAthleteFieldsAndAge() {
   assert.equal(byLabel["Longest run"], formatDistanceKm(12));
 }
 
-function testAttachesCurrentPlan() {
-  const view = mapUserToProfileView({
-    user: baseUser,
-    currentPlan: {
-      objective: "Build aerobic base",
-      status: "active",
-      startDate: new Date("2026-08-10T00:00:00.000Z"),
-      endDate: new Date("2026-08-16T00:00:00.000Z"),
-    },
-  });
-  assert.equal(view.currentPlan?.objective, "Build aerobic base");
-  assert.equal(view.currentPlan?.status, "active");
-  assert.equal(view.currentPlan?.statusLabel, "Active");
-  assert.equal(view.currentPlan?.startDate, "2026-08-10T00:00:00.000Z");
-  assert.equal(
-    view.currentPlan?.startDateLabel,
-    formatActivityDate("2026-08-10T00:00:00.000Z"),
-  );
-  assert.equal(view.currentPlan?.endDate, "2026-08-16T00:00:00.000Z");
-  assert.equal(
-    view.currentPlan?.endDateLabel,
-    formatActivityDate("2026-08-16T00:00:00.000Z"),
-  );
+function testDoesNotAcceptCurrentPlanInput() {
+  const view = mapUserToProfileView({ user: baseUser });
+  assert.equal("currentPlan" in view, false);
 }
 
 function testDoesNotLeakStravaTokens() {
@@ -194,6 +174,6 @@ testAdaptiveStyleHasNoPresetEvenWithGoal();
 testNoGoalLeavesGoalNullAndSkipsPreset();
 testOmitsUnsetAthleteFields();
 testMapsAthleteFieldsAndAge();
-testAttachesCurrentPlan();
+testDoesNotAcceptCurrentPlanInput();
 testDoesNotLeakStravaTokens();
 console.log("getProfileView tests passed");

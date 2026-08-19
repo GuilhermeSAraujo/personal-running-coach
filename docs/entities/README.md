@@ -23,12 +23,12 @@ Source of truth for product concepts: [`../ai-running-coach-data-model.md`](../a
 
 ```text
 src/models/
-  shared.ts          # enums, GOAL_DISTANCE_KM, shared subdocs
+  shared.ts          # enums, GOAL_DISTANCE_KM, heartRateSchema
   User.ts
   Activity.ts
-  Evaluation.ts
-  TrainingPlan.ts
-  Workout.ts
+  AthleteSnapshot.ts
+  SessionPlan.ts
+  DailyCoachMessage.ts
   index.ts           # barrel re-exports
 ```
 
@@ -46,9 +46,9 @@ Models never call `dbConnect`; callers must connect first.
 ## Conventions
 
 - **HMR-safe registration:** `mongoose.models.X ?? mongoose.model<IX>("X", Schema)`
-- **Collections:** `users`, `activities`, `evaluations`, `training_plans`, `workouts` (explicit `collection` option)
+- **Collections:** `users`, `activities`, `athlete_snapshots`, `session_plans`, `daily_coach_messages` (explicit `collection` option)
 - **Refs:** `Schema.Types.ObjectId` with `ref`
-- **Timestamps:** `timestamps: true` on User, Activity, TrainingPlan, Workout; Evaluation uses `createdAt` only (`updatedAt: false`) for write-once semantics
+- **Timestamps:** `timestamps: true` on User and Activity; `createdAt` only (`updatedAt: false`) on AthleteSnapshot, SessionPlan, and DailyCoachMessage
 - **Enums:** string unions in TypeScript + matching `enum: [...]` arrays in schemas
 
 ---
@@ -57,12 +57,11 @@ Models never call `dbConnect`; callers must connect first.
 
 ### User (`users`)
 
-Stable athlete state: Strava credentials, profile, goal, and coaching pointers.
+Stable athlete state: Strava credentials, profile, goal, and training style.
 
 - `strava`: `athleteId`, `accessToken`, `refreshToken`, `expiresAt`
 - `profile`: `name`, `email`; optional `heightCm` / `weightKg` (filled during onboarding), `birthDate`, `current5kTime`, `longestRunKm`
 - `goal` (optional until onboarding): `type` (`5k` \| `10k` \| `half_marathon` \| `marathon`), `distanceKm`, `targetTimeSeconds`, `targetDate`
-- `coaching`: `activitiesSinceLastEvaluation` (default `0`), `evaluationActivityThreshold` (default `3`), optional `currentEvaluationId` / `currentTrainingPlanId`
 
 **Onboarding:** incomplete while `goal.type` is missing (blocking modal). Only `goal.type` is required from the user; omitted `targetTimeSeconds` / `targetDate` are filled server-side (amateur defaults: 5k/10k +3 months, half +4, marathon +5). Optional profile fields are written only when provided.
 
@@ -79,37 +78,6 @@ Normalized facts of what the athlete did (not raw Strava shape).
 
 **Indexes:** `{ userId, startedAt: -1 }`; unique `{ userId, stravaActivityId }`
 
-### Evaluation (`evaluations`)
-
-Immutable coaching snapshot (created every N activities; threshold lives on the user).
-
-- `period`: activity refs + `startedAt` / `endedAt`
-- `metrics`: embedded `IAthleteMetrics` (weekly mileage, longest run, consistency, easy volume %, estimated race times)
-- `goalAssessment`: estimated vs target time, gap, readiness
-- `analysis`: strengths / weaknesses / progress / concerns
-- `recommendations`: string array
-
-**Index:** `{ userId, createdAt: -1 }`
-
-Immutability is a service-layer rule later; the schema is create-oriented only.
-
-### TrainingPlan (`training_plans`)
-
-Prescription produced from an evaluation.
-
-- `userId`, `evaluationId`, `status` (`active` \| `completed` \| `cancelled`), `startDate`, `endDate`, `objective`
-
-### Workout (`workouts`)
-
-Individual scheduled sessions under a plan; optionally linked to a completed activity.
-
-- `userId`, `trainingPlanId`, `scheduledDate`, `type`, `target`, `description`, `status`, optional `activityId`
-- Types: `easy` \| `long_run` \| `tempo` \| `interval` \| `recovery` \| `race`
-- Statuses: `scheduled` \| `completed` \| `missed` \| `skipped`
-- `target`: optional distance, duration, pace range, heart-rate zone
-
-**Index:** `{ userId, scheduledDate: 1 }`
-
 ---
 
 ## Relationships
@@ -117,12 +85,11 @@ Individual scheduled sessions under a plan; optionally linked to a completed act
 ```text
 User
  ├── Activities
- ├── Evaluations
- ├── Training Plans
- └── Workouts
+ ├── AthleteSnapshots
+ ├── SessionPlans
+ └── DailyCoachMessages
 
-Evaluation ──produces──► TrainingPlan ──contains──► Workout
-Workout ──optionally matches──► Activity
+AthleteSnapshot ──feeds──► SessionPlan ──sessions match──► Activity
 ```
 
 ---
@@ -131,9 +98,9 @@ Workout ──optionally matches──► Activity
 
 [`src/models/shared.ts`](../../src/models/shared.ts) exports:
 
-- Enum const arrays and union types (`GoalType`, `ActivityType`, `WorkoutType`, etc.)
+- Enum const arrays and union types (`GoalType`, `ActivityType`, `SessionType`, `SegmentKind`)
 - `GOAL_DISTANCE_KM`
-- Reusable schemas: `athleteMetricsSchema`, `estimatedRaceTimesSchema`, `heartRateSchema`
+- Reusable schemas: `heartRateSchema`
 
 ---
 
@@ -141,4 +108,4 @@ Workout ──optionally matches──► Activity
 
 - Repositories, coaching / metrics / AI services, Strava sync
 - Auth.js MongoDB adapter / session ↔ `User` linking
-- Migrations, seeds, Evaluation immutability middleware
+- Migrations, seeds
