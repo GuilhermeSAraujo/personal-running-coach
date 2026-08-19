@@ -110,6 +110,7 @@ async function testDuplicateKeyReturnsExisting() {
       });
       throw err;
     },
+    replace: async (doc) => store.replace(doc),
   };
 
   const result = await ensureDailyCoachMessage(userId, {
@@ -123,6 +124,61 @@ async function testDuplicateKeyReturnsExisting() {
   });
 
   assert.deepEqual(result, { date: "2026-08-15", message: "Primeiro" });
+}
+
+async function testForceRegeneratesAndReplacesExisting() {
+  let generateCalls = 0;
+  const store = memoryStore();
+  await store.create({
+    userId,
+    date: "2026-08-15",
+    message: "Já gerado",
+    promptText: "old",
+    generatedAt: now,
+  });
+
+  const result = await ensureDailyCoachMessage(userId, {
+    now,
+    force: true,
+    deps: {
+      loadGoal: async () => goal,
+      loadProgress: async () => progress,
+      generate: async () => {
+        generateCalls += 1;
+        return { message: "novo", promptText: "new-prompt" };
+      },
+      store,
+    },
+  });
+
+  assert.deepEqual(result, { date: "2026-08-15", message: "novo" });
+  assert.equal(generateCalls, 1);
+  const saved = await store.findByUserAndDate(userId, "2026-08-15");
+  assert.equal(saved?.message, "novo");
+  assert.equal(saved?.promptText, "new-prompt");
+}
+
+async function testForceCreatesWhenMissing() {
+  const store = memoryStore();
+  const result = await ensureDailyCoachMessage(userId, {
+    now,
+    force: true,
+    deps: {
+      loadGoal: async () => goal,
+      loadProgress: async () => progress,
+      generate: async () => ({
+        message: "Primeira análise.",
+        promptText: "TODAY\ndate=2026-08-15",
+      }),
+      store,
+    },
+  });
+  assert.deepEqual(result, {
+    date: "2026-08-15",
+    message: "Primeira análise.",
+  });
+  const saved = await store.findByUserAndDate(userId, "2026-08-15");
+  assert.equal(saved?.promptText, "TODAY\ndate=2026-08-15");
 }
 
 function memoryStore(): DailyCoachMessageStore {
@@ -147,6 +203,17 @@ function memoryStore(): DailyCoachMessageStore {
       docs.push(doc);
       return doc;
     },
+    async replace(doc) {
+      const index = docs.findIndex(
+        (d) => String(d.userId) === String(doc.userId) && d.date === doc.date,
+      );
+      if (index >= 0) {
+        docs[index] = doc;
+      } else {
+        docs.push(doc);
+      }
+      return doc;
+    },
   };
 }
 
@@ -156,6 +223,8 @@ async function main() {
   await testReturnsExistingWithoutGenerating();
   await testCreatesWhenMissing();
   await testDuplicateKeyReturnsExisting();
+  await testForceRegeneratesAndReplacesExisting();
+  await testForceCreatesWhenMissing();
   console.log("ensureDailyCoachMessage tests passed");
 }
 

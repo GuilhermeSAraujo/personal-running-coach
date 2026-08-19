@@ -48,13 +48,17 @@ function toActivitySummary(doc: LeanActivity): ProgressActivitySummary {
   };
 }
 
-function sessionPaceRange(session: IPlannedSession): {
+const TARGET_PACE_KINDS = new Set(["work", "steady"]);
+
+function paceRangeFromSegments(
+  segments: IPlannedSession["segments"] | undefined,
+): {
   paceMinPerKm?: number;
   paceMaxPerKm?: number;
 } {
   let paceMinPerKm: number | undefined;
   let paceMaxPerKm: number | undefined;
-  for (const segment of session.segments ?? []) {
+  for (const segment of segments ?? []) {
     if (segment.paceMinPerKm != null) {
       paceMinPerKm =
         paceMinPerKm == null
@@ -72,6 +76,21 @@ function sessionPaceRange(session: IPlannedSession): {
     ...(paceMinPerKm != null ? { paceMinPerKm } : {}),
     ...(paceMaxPerKm != null ? { paceMaxPerKm } : {}),
   };
+}
+
+export function sessionPaceRange(session: IPlannedSession): {
+  paceMinPerKm?: number;
+  paceMaxPerKm?: number;
+} {
+  const segments = session.segments ?? [];
+  const targetSegments = segments.filter((segment) =>
+    TARGET_PACE_KINDS.has(segment.kind),
+  );
+  const fromTarget = paceRangeFromSegments(targetSegments);
+  if (fromTarget.paceMinPerKm != null || fromTarget.paceMaxPerKm != null) {
+    return fromTarget;
+  }
+  return paceRangeFromSegments(segments);
 }
 
 function isInHistoryWindow(

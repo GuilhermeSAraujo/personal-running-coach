@@ -55,12 +55,45 @@ function formatPlannedKm(session: {
   return km != null ? `${formatKm(km)}km` : null;
 }
 
+function formatScheduledPace(session: {
+  paceMinPerKm?: number;
+  paceMaxPerKm?: number;
+}): string | null {
+  if (session.paceMinPerKm == null && session.paceMaxPerKm == null) {
+    return null;
+  }
+  if (
+    session.paceMinPerKm != null &&
+    session.paceMaxPerKm != null &&
+    session.paceMinPerKm !== session.paceMaxPerKm
+  ) {
+    return `${round(session.paceMinPerKm, 2)}-${round(session.paceMaxPerKm, 2)}`;
+  }
+  const pace = session.paceMinPerKm ?? session.paceMaxPerKm;
+  return pace != null ? String(round(pace, 2)) : null;
+}
+
 function formatActual(activity: {
   distanceKm: number;
   paceSecondsPerKm: number;
 }): string {
   const paceMin = round(activity.paceSecondsPerKm / 60, 2);
   return `actual=${formatKm(activity.distanceKm)}km pace=${paceMin}`;
+}
+
+function appendScheduledFields(
+  parts: string[],
+  session: {
+    totalDistanceKmMin?: number;
+    totalDistanceKmMax?: number;
+    paceMinPerKm?: number;
+    paceMaxPerKm?: number;
+  },
+): void {
+  const scheduled = formatPlannedKm(session);
+  if (scheduled) parts.push(`scheduled=${scheduled}`);
+  const scheduledPace = formatScheduledPace(session);
+  if (scheduledPace) parts.push(`scheduledPace=${scheduledPace}`);
 }
 
 function formatGoal(goal: IUserGoal): string {
@@ -80,8 +113,7 @@ function formatThisWeekSession(session: ProgressSession): string {
     `title=${session.title}`,
     `status=${session.status}`,
   ];
-  const planned = formatPlannedKm(session);
-  if (planned) parts.push(`planned=${planned}`);
+  appendScheduledFields(parts, session);
   if (session.activity) parts.push(formatActual(session.activity));
   return parts.join(" ");
 }
@@ -96,8 +128,7 @@ function formatHistoryItem(item: ProgressTimelineItem): string {
     `title=${item.title}`,
     "status=matched",
   ];
-  const planned = formatPlannedKm(item);
-  if (planned) parts.push(`planned=${planned}`);
+  appendScheduledFields(parts, item);
   if (item.activity) parts.push(formatActual(item.activity));
   return parts.join(" ");
 }

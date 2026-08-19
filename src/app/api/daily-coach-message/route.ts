@@ -6,7 +6,7 @@ import { ensureDailyCoachMessage } from "@/services/coachMessages/ensureDailyCoa
 
 export const maxDuration = 60;
 
-export async function GET() {
+async function handleDailyCoachMessage(force: boolean) {
   const session = await auth();
   if (!session?.stravaAthleteId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -24,7 +24,7 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const result = await ensureDailyCoachMessage(user._id);
+    const result = await ensureDailyCoachMessage(user._id, { force });
     if (!result) {
       return NextResponse.json({ message: null });
     }
@@ -37,4 +37,12 @@ export async function GET() {
       { status: 500 },
     );
   }
+}
+
+export async function GET() {
+  return handleDailyCoachMessage(false);
+}
+
+export async function POST() {
+  return handleDailyCoachMessage(true);
 }

@@ -32,6 +32,9 @@ export type DailyCoachMessageStore = {
   create: (
     doc: DailyCoachMessageRecord,
   ) => Promise<DailyCoachMessageRecord>;
+  replace: (
+    doc: DailyCoachMessageRecord,
+  ) => Promise<DailyCoachMessageRecord>;
 };
 
 export type EnsureDailyCoachMessageDeps = {
@@ -81,6 +84,24 @@ const mongoStore: DailyCoachMessageStore = {
     });
     return toRecord(created);
   },
+  async replace(doc) {
+    const updated = await DailyCoachMessage.findOneAndUpdate(
+      { userId: doc.userId, date: doc.date },
+      {
+        $set: {
+          message: doc.message,
+          promptText: doc.promptText,
+          generatedAt: doc.generatedAt,
+          schemaVersion: DAILY_COACH_MESSAGE_SCHEMA_VERSION,
+        },
+      },
+      { upsert: true, new: true },
+    );
+    if (!updated) {
+      throw new Error("Failed to replace daily coach message");
+    }
+    return toRecord(updated);
+  },
 };
 
 async function defaultLoadGoal(
@@ -94,6 +115,7 @@ export async function ensureDailyCoachMessage(
   userId: Types.ObjectId | string,
   options?: {
     now?: Date;
+    force?: boolean;
     deps?: EnsureDailyCoachMessageDeps;
   },
 ): Promise<DailyCoachMessageView | null> {
@@ -116,21 +138,28 @@ export async function ensureDailyCoachMessage(
 
   const date = toUtcDateString(now);
   const existing = await store.findByUserAndDate(userId, date);
-  if (existing) {
+  if (existing && !options?.force) {
     return { date: existing.date, message: existing.message };
   }
 
   const progress = await loadProgress(userId);
   const generated = await generate({ goal, progress, now });
 
+  const record = {
+    userId,
+    date,
+    message: generated.message,
+    promptText: generated.promptText,
+    generatedAt: now,
+  };
+
+  if (options?.force) {
+    const replaced = await store.replace(record);
+    return { date: replaced.date, message: replaced.message };
+  }
+
   try {
-    const created = await store.create({
-      userId,
-      date,
-      message: generated.message,
-      promptText: generated.promptText,
-      generatedAt: now,
-    });
+    const created = await store.create(record);
     return { date: created.date, message: created.message };
   } catch (err) {
     if (!isDuplicateKeyError(err)) {

@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import type { IPlannedSession } from "@/models";
 import {
   buildPriorMatchByDate,
   matchedDatesInThisWeek,
   overlayPriorMatchesOnThisWeek,
+  sessionPaceRange,
   sortHistoryNewestFirst,
   type PriorMatchedSession,
 } from "./getProgressFollowUp";
@@ -102,7 +104,56 @@ function testPriorMatchFirstWins() {
   assert.equal(map.get("2026-08-09")!.title, "Newer plan match");
 }
 
+function plannedSession(
+  segments: IPlannedSession["segments"],
+): IPlannedSession {
+  return {
+    order: 1,
+    scheduledDate: "2026-08-12",
+    title: "Ritmo Forte 10k",
+    type: "tempo",
+    purpose: "threshold",
+    coachingNotes: [],
+    segments,
+    status: "open",
+  };
+}
+
+function testSessionPaceRangePrefersWorkAndSteady() {
+  const range = sessionPaceRange(
+    plannedSession([
+      { kind: "warmup", distanceKm: 1.5, paceMinPerKm: 7.5, paceMaxPerKm: 8 },
+      { kind: "work", distanceKm: 10, paceMinPerKm: 5.45, paceMaxPerKm: 5.45 },
+      { kind: "cooldown", distanceKm: 1, paceMinPerKm: 7.5, paceMaxPerKm: 8 },
+    ]),
+  );
+  assert.deepEqual(range, { paceMinPerKm: 5.45, paceMaxPerKm: 5.45 });
+}
+
+function testSessionPaceRangeFallsBackToAllSegments() {
+  const range = sessionPaceRange(
+    plannedSession([
+      { kind: "warmup", distanceKm: 1, paceMinPerKm: 7.5, paceMaxPerKm: 8 },
+      { kind: "cooldown", distanceKm: 1, paceMinPerKm: 7.2, paceMaxPerKm: 7.8 },
+    ]),
+  );
+  assert.deepEqual(range, { paceMinPerKm: 7.2, paceMaxPerKm: 8 });
+}
+
+function testSessionPaceRangeUsesSteadyWhenNoWork() {
+  const range = sessionPaceRange(
+    plannedSession([
+      { kind: "warmup", distanceKm: 1, paceMinPerKm: 7.5 },
+      { kind: "steady", distanceKm: 8, paceMinPerKm: 6.2, paceMaxPerKm: 6.6 },
+    ]),
+  );
+  assert.deepEqual(range, { paceMinPerKm: 6.2, paceMaxPerKm: 6.6 });
+}
+
 testOverlayPromotesOpenSessionToMatched();
 testHistorySortNewestFirst();
 testPriorMatchFirstWins();
+testSessionPaceRangePrefersWorkAndSteady();
+testSessionPaceRangeFallsBackToAllSegments();
+testSessionPaceRangeUsesSteadyWhenNoWork();
 console.log("progress follow-up helper tests passed");

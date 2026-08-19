@@ -87,10 +87,51 @@ function testIncludesGoalTodayAndRecentPlanVsRuns() {
   assert.match(text, /PLAN_VS_RUNS/);
   assert.match(
     text,
-    /2026-08-14 type=easy title=Easy 8k status=matched planned=8-10km actual=9.2km/,
+    /2026-08-14 type=easy title=Easy 8k status=matched scheduled=8-10km scheduledPace=6\.2-6\.6 actual=9\.2km pace=5\.97/,
   );
   assert.match(text, /2026-08-15 type=rest title=Rest status=open/);
+  assert.doesNotMatch(text, /2026-08-15 type=rest .*scheduled=/);
   assert.match(text, /2026-08-12 unplanned actual=5km/);
+  assert.doesNotMatch(text, /2026-08-12 unplanned .*scheduled=/);
+}
+
+function testSingleScheduledDistanceAndPace() {
+  const text = formatDailyCoachPrompt({
+    goal,
+    progress: {
+      thisWeek: {
+        planId: "plan1",
+        sessions: [
+          {
+            order: 1,
+            scheduledDate: "2026-08-12",
+            title: "Ritmo Forte 10k",
+            type: "tempo",
+            purpose: "threshold",
+            totalDistanceKmMin: 10,
+            totalDistanceKmMax: 10,
+            paceMinPerKm: 5.45,
+            paceMaxPerKm: 5.45,
+            status: "matched",
+            activity: {
+              id: "a1",
+              distanceKm: 10.6,
+              durationSeconds: 3745,
+              paceSecondsPerKm: 353.4,
+              startedAt: "2026-08-12T10:00:00.000Z",
+            },
+          },
+        ],
+      },
+      history: [],
+    },
+    now: new Date("2026-08-15T12:00:00.000Z"),
+  });
+
+  assert.match(
+    text,
+    /2026-08-12 type=tempo title=Ritmo Forte 10k status=matched scheduled=10km scheduledPace=5\.45 actual=10\.6km pace=5\.89/,
+  );
 }
 
 function testOmitsRunsOlderThan14Days() {
@@ -116,6 +157,7 @@ function testWorksWithoutPlan() {
 }
 
 testIncludesGoalTodayAndRecentPlanVsRuns();
+testSingleScheduledDistanceAndPace();
 testOmitsRunsOlderThan14Days();
 testWorksWithoutPlan();
 console.log("formatDailyCoachPrompt tests passed");
