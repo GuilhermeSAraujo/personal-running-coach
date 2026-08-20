@@ -1,5 +1,6 @@
 import { auth, signOut } from "@/auth";
 import { AppNav } from "@/components/AppNav";
+import { BackLink } from "@/components/BackLink";
 import { ProfileAthleteCard } from "@/components/profile/ProfileAthleteCard";
 import { ProfileGoalCard } from "@/components/profile/ProfileGoalCard";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
@@ -44,6 +45,7 @@ export default async function ProfilePage() {
   return (
     <Container maxW="md" py={16}>
       <VStack gap={6} align="stretch">
+        <BackLink />
         <AppNav
           userName={session.user?.name}
           userImage={session.user?.image}

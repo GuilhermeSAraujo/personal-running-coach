@@ -1,6 +1,7 @@
 "use client";
 
 import { formatSessionTypeShort } from "@/lib/sessionPlanFormat";
+import { sessionPlanDayPath } from "@/lib/sessionPlanNav";
 import {
   buildWeekBoard,
   selectWeekDay,
@@ -121,12 +122,30 @@ function WeekDayCell({
 function DaySessionPanel({
   day,
   hasPlan,
+  planId,
 }: {
   day: WeekDay;
   hasPlan: boolean;
+  planId: string | null;
 }) {
   if (day.session) {
-    return <ProgressSessionRow session={day.session} />;
+    const row = <ProgressSessionRow session={day.session} />;
+    if (!planId) return row;
+
+    return (
+      <Link
+        href={sessionPlanDayPath(planId, day.session.scheduledDate)}
+        style={{ textDecoration: "none", display: "block" }}
+      >
+        <Box
+          cursor="pointer"
+          transition="opacity 0.15s"
+          _hover={{ opacity: 0.92 }}
+        >
+          {row}
+        </Box>
+      </Link>
+    );
   }
 
   if (!hasPlan) {
@@ -171,7 +190,7 @@ export function WeekRail({ planId, sessions }: WeekRailProps) {
         ))}
       </Grid>
 
-      <DaySessionPanel day={selected} hasPlan={hasPlan} />
+      <DaySessionPanel day={selected} hasPlan={hasPlan} planId={planId} />
 
       {planId ? (
         <Link href={`/session-plans/${planId}`} style={{ textDecoration: "none" }}>

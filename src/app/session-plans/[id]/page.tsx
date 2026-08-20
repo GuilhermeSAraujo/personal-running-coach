@@ -1,23 +1,35 @@
 import { auth } from "@/auth"
+import { BackLink } from "@/components/BackLink"
 import { SessionPlanDetails } from "@/components/SessionPlanDetails"
 import { dbConnect } from "@/lib/db"
+import { resolveOpenSessionDate } from "@/lib/sessionPlanNav"
 import { User } from "@/models"
 import { getSessionPlanForUser } from "@/services/sessionPlans/getSessionPlanForUser"
-import { Container, Text, VStack } from "@chakra-ui/react"
-import Link from "next/link"
+import { Container, VStack } from "@chakra-ui/react"
 import { notFound, redirect } from "next/navigation"
 
 type PageProps = {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ date?: string | string[] }>
 }
 
-export default async function SessionPlanPage({ params }: PageProps) {
+function firstSearchParam(
+  value: string | string[] | undefined,
+): string | undefined {
+  return Array.isArray(value) ? value[0] : value
+}
+
+export default async function SessionPlanPage({
+  params,
+  searchParams,
+}: PageProps) {
   const session = await auth()
   if (!session?.stravaAthleteId) {
     redirect("/")
   }
 
   const { id } = await params
+  const { date } = await searchParams
 
   await dbConnect()
   const user = await User.findOne({
@@ -35,15 +47,16 @@ export default async function SessionPlanPage({ params }: PageProps) {
     notFound()
   }
 
+  const openDate = resolveOpenSessionDate(
+    plan.sessions,
+    firstSearchParam(date),
+  )
+
   return (
     <Container maxW="md" py={16}>
       <VStack gap={6} align="stretch">
-        <Link href="/" style={{ textDecoration: "none", alignSelf: "flex-start" }}>
-          <Text fontSize="sm" color="fg.muted">
-            ← Back
-          </Text>
-        </Link>
-        <SessionPlanDetails plan={plan} />
+        <BackLink />
+        <SessionPlanDetails plan={plan} openDate={openDate} />
       </VStack>
     </Container>
   )

@@ -1,5 +1,6 @@
 import { auth, signIn, signOut } from "@/auth";
 import { AppNav } from "@/components/AppNav";
+import { BackLink } from "@/components/BackLink";
 import { ConsistencyChart } from "@/components/metrics/ConsistencyChart";
 import { LongRunChart } from "@/components/metrics/LongRunChart";
 import { MetricsEmptyState } from "@/components/metrics/MetricsEmptyState";
@@ -24,6 +25,7 @@ export default async function MetricsPage() {
     return (
       <Container maxW="md" py={16}>
         <VStack gap={6} align="stretch">
+          <BackLink />
           <Heading size="xl" textAlign="center">
             Welcome
           </Heading>
@@ -68,6 +70,7 @@ export default async function MetricsPage() {
   return (
     <Container maxW="md" py={16}>
       <VStack gap={6} align="stretch">
+        <BackLink />
         <AppNav
           userName={session.user?.name}
           userImage={session.user?.image}
