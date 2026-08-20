@@ -11,6 +11,15 @@ const SESSION_TYPE_LABELS: Record<SessionType, string> = {
   rest: "Rest",
 };
 
+const SESSION_TYPE_SHORT_LABELS: Record<SessionType, string> = {
+  easy: "Easy",
+  tempo: "Tempo",
+  long_run: "Long",
+  interval: "Interval",
+  recovery: "Recovery",
+  rest: "Rest",
+};
+
 const SEGMENT_KIND_LABELS: Record<SegmentKind, string> = {
   warmup: "Warm-up",
   work: "Work",
@@ -22,6 +31,13 @@ const SEGMENT_KIND_LABELS: Record<SegmentKind, string> = {
 export function formatSessionType(type: SessionType | string): string {
   if (type in SESSION_TYPE_LABELS) {
     return SESSION_TYPE_LABELS[type as SessionType];
+  }
+  return type;
+}
+
+export function formatSessionTypeShort(type: SessionType | string): string {
+  if (type in SESSION_TYPE_SHORT_LABELS) {
+    return SESSION_TYPE_SHORT_LABELS[type as SessionType];
   }
   return type;
 }

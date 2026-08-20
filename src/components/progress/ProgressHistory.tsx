@@ -7,13 +7,14 @@ import { Heading, Text, VStack } from "@chakra-ui/react";
 
 type Props = {
   items: ProgressTimelineItem[];
+  showHeading?: boolean;
 };
 
-export function ProgressHistory({ items }: Props) {
+export function ProgressHistory({ items, showHeading = true }: Props) {
   if (items.length === 0) {
     return (
       <VStack gap={2} align="stretch" width="full">
-        <Heading size="sm">Recent history</Heading>
+        {showHeading ? <Heading size="sm">Recent history</Heading> : null}
         <Text color="fg.muted" fontSize="sm">
           No matched sessions or unplanned runs in the last four weeks.
         </Text>
@@ -23,7 +24,7 @@ export function ProgressHistory({ items }: Props) {
 
   return (
     <VStack gap={3} align="stretch" width="full">
-      <Heading size="sm">Recent history</Heading>
+      {showHeading ? <Heading size="sm">Recent history</Heading> : null}
       <Text fontSize="xs" color="fg.muted">
         Last ~4 weeks
       </Text>

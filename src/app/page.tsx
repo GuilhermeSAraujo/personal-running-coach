@@ -1,13 +1,16 @@
 import { auth, signIn, signOut } from "@/auth"
 import Link from "next/link"
-import { ActivityHighlights } from "@/components/ActivityHighlights"
 import { AppNav } from "@/components/AppNav"
 import { DailyCoachMessage } from "@/components/DailyCoachMessage"
+import { LastRunStrip } from "@/components/LastRunStrip"
 import { OnboardingModal } from "@/components/OnboardingModal"
 import { ProgressHistory } from "@/components/progress/ProgressHistory"
-import { ProgressThisWeek } from "@/components/progress/ProgressThisWeek"
+import { RecentHistoryDisclosure } from "@/components/progress/RecentHistoryDisclosure"
+import { WeekRail } from "@/components/weekRail/WeekRail"
 import { dbConnect } from "@/lib/db"
+import { buildHomeHistory } from "@/lib/weekBoard"
 import { User } from "@/models"
+import { utcDateString } from "@/services/ai/planWindow"
 import {
   getActivityHighlights,
   type ActivityHighlights as ActivityHighlightsData,
@@ -44,6 +47,13 @@ export default async function HomePage() {
     }
   }
 
+  const thisWeekSessions = progress?.thisWeek?.sessions ?? []
+  const homeHistory = buildHomeHistory(
+    thisWeekSessions,
+    progress?.history ?? [],
+    utcDateString(new Date()),
+  )
+
   return (
     <Container maxW="md" py={16}>
       <VStack gap={6} align="stretch">
@@ -78,27 +88,21 @@ export default async function HomePage() {
               <DailyCoachMessage key={highlights?.last?.id ?? "no-activity"} />
             ) : null}
 
-            <VStack gap={2} align="stretch">
-              <Heading size="md">Progress</Heading>
-              <Text fontSize="sm" color="fg.muted">
-                What you’ve done and what’s still ahead.
-              </Text>
-            </VStack>
-
-            <Link href="/metrics" style={{ textDecoration: "none", width: "100%" }}>
-              <Button colorPalette="orange" variant="outline" size="lg" width="full">
-                Training metrics
-              </Button>
-            </Link>
-
-            <ProgressThisWeek
+            <WeekRail
               planId={progress?.thisWeek?.planId ?? null}
-              sessions={progress?.thisWeek?.sessions ?? []}
+              sessions={thisWeekSessions}
             />
 
-            <ProgressHistory items={progress?.history ?? []} />
+            {highlights ? <LastRunStrip last={highlights.last} /> : null}
 
-            {highlights ? <ActivityHighlights highlights={highlights} /> : null}
+            <Button asChild width="full" size="sm" colorPalette="orange">
+              <Link href="/metrics">Training metrics →</Link>
+            </Button>
+
+            <RecentHistoryDisclosure>
+              <ProgressHistory items={homeHistory} showHeading={false} />
+            </RecentHistoryDisclosure>
+
             <OnboardingModal open={needsOnboarding} />
           </VStack>
         )}
